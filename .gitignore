@@ -1,0 +1,36 @@
+# 虚拟环境
+venv/
+.venv/
+
+# 构建产物
+build/
+dist/
+*.spec
+__pycache__/
+*.pyc
+
+# 管线输出（仅保留报告）
+doc_pipeline/output/manifest.json
+doc_pipeline/output/converted/
+doc_pipeline/output/pipeline.log
+
+# 大文件
+*.exe
+*.msi
+*.zip
+*.mp3
+*.mp4
+
+# 依赖
+node_modules/
+
+# IDE
+.vscode/
+.idea/
+
+# 个人文件
+E:/
+
+# Claude
+.claude/
+CLAUDE.md
