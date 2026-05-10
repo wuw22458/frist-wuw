@@ -8,6 +8,8 @@ dist/
 *.spec
 __pycache__/
 *.pyc
+*.pyo
+*.egg-info/
 
 # 管线输出（仅保留报告）
 doc_pipeline/output/manifest.json
