@@ -177,10 +177,16 @@ pyinstaller agent_notify.spec --noconfirm
 
 ## 技术栈
 
-- Python 3.14 + PySide6
+- Python 3.10+ + PySide6
 - Windows Toast 通知（PowerShell + Windows Runtime API）
 - PyInstaller 打包
 - Windows 注册表（开机自启）
+
+## 相关文档
+
+- [CHANGELOG.md](CHANGELOG.md) — 版本变更记录
+- [CONTRIBUTING.md](CONTRIBUTING.md) — 贡献指南
+- [TECHNICAL.md](TECHNICAL.md) — 技术设计文档
 
 ## License
 
