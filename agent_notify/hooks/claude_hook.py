@@ -7,6 +7,7 @@
 用法：
   python claude_hook.py --event notification
   python claude_hook.py --event stop
+  python claude_hook.py --event tool_use
 
 stdin 接收 Claude Code 传入的 JSON 上下文。
 环境变量 CLAUDE_NOTIFICATION 包含通知消息（Notification hook）。
@@ -129,6 +130,30 @@ def ensure_app_running() -> bool:
     return False
 
 
+def _extract_tool_message(stdin_context: dict) -> str:
+    """从 PreToolUse hook 的 stdin 上下文中提取消息文本。
+
+    PreToolUse stdin 格式:
+      {"tool_name": "AskUserQuestion", "tool_input": {"questions": [...]}}
+      {"tool_name": "ExitToolMode", "tool_input": {"allowedPrompts": [...]}}
+    """
+    tool_name = stdin_context.get("tool_name", "")
+    tool_input = stdin_context.get("tool_input", {})
+
+    if tool_name == "AskUserQuestion":
+        questions = tool_input.get("questions", [])
+        if questions:
+            first_q = questions[0].get("question", "")
+            if first_q:
+                return f"需要选择: {first_q}"
+        return "Claude Code 需要你做出选择"
+
+    if tool_name == "ExitToolMode":
+        return "Claude Code 请求批准计划"
+
+    return f"Claude Code 调用了 {tool_name}"
+
+
 def main() -> None:
     """入口函数 — 解析事件类型，生成消息，写信号文件，确保托盘运行。
 
@@ -142,7 +167,7 @@ def main() -> None:
     _debug(f"hook 启动, args={sys.argv}")
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--event", required=True, choices=["notification", "stop"])
+    parser.add_argument("--event", required=True, choices=["notification", "stop", "tool_use"])
     args = parser.parse_args()
 
     # 读取 stdin（Claude Code 传入的 hook 上下文）
@@ -159,6 +184,8 @@ def main() -> None:
         )
         if notif_type == "permission_prompt":
             message = f"需要确认: {message}" if message else "Claude Code 需要工具权限"
+    elif args.event == "tool_use":
+        message = _extract_tool_message(stdin_context)
     else:
         message = "Claude Code 任务已完成"
 
