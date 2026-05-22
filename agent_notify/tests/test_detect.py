@@ -45,3 +45,22 @@ class TestCursorDetect:
              patch("pathlib.Path.exists", return_value=False):
             from adapters.cursor import CursorAdapter
             assert CursorAdapter.detect() is False
+
+
+class TestWindsurfDetect:
+    def test_which_found(self):
+        with patch("shutil.which", return_value="/usr/bin/windsurf"):
+            from adapters.windsurf import WindsurfAdapter
+            assert WindsurfAdapter.detect() is True
+
+    def test_which_not_found_path_exists(self):
+        with patch("shutil.which", return_value=None), \
+             patch("pathlib.Path.exists", return_value=True):
+            from adapters.windsurf import WindsurfAdapter
+            assert WindsurfAdapter.detect() is True
+
+    def test_which_not_found_no_path(self):
+        with patch("shutil.which", return_value=None), \
+             patch("pathlib.Path.exists", return_value=False):
+            from adapters.windsurf import WindsurfAdapter
+            assert WindsurfAdapter.detect() is False

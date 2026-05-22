@@ -4,10 +4,10 @@
 
 ### 问题
 
-AI 编码 Agent（Claude Code、Cursor、Aider 等）在执行任务时需要用户介入（权限确认、任务完成），但各 Agent 的通知机制独立且碎片化：
+AI 编码 Agent（Claude Code、Cursor、Windsurf、Aider 等）在执行任务时需要用户介入（权限确认、任务完成），但各 Agent 的通知机制独立且碎片化：
 
 - Claude Code 通过 hook 脚本通知
-- Cursor 通过窗口标题变化提示
+- Cursor / Windsurf 通过窗口标题变化提示
 - Aider 通过 `--notify-cmd` 参数支持自定义通知
 
 用户同时使用多个 Agent 时，容易错过关键通知，导致 Agent 长时间等待。
@@ -26,14 +26,14 @@ AI 编码 Agent（Claude Code、Cursor、Aider 等）在执行任务时需要用
 
 ```
 ┌──────────────┐  ┌──────────────┐  ┌──────────────┐
-│ Claude Code  │  │   Cursor     │  │    Aider     │
+│ Claude Code  │  │   Cursor     │  │  Windsurf    │  │    Aider     │
 │  (hook 脚本)  │  │ (窗口标题轮询) │  │ (--notify-cmd)│
 └──────┬───────┘  └──────┬───────┘  └──────┬───────┘
        │                 │                 │
        ▼                 ▼                 ▼
 ┌─────────────────────────────────────────────────┐
 │                 Adapter 层                       │
-│  ClaudeCodeAdapter │ CursorAdapter │ AiderAdapter│
+│  ClaudeCodeAdapter │ CursorAdapter │ WindsurfAdapter │ AiderAdapter│
 │         SignalFileAdapter (中间层)                │
 │              PollingAdapter (QTimer)              │
 │              AgentAdapter (抽象基类)              │
@@ -73,8 +73,12 @@ AgentAdapter (抽象基类)
         │     ├── AiderAdapter       (~30 行)
         │     └── Custom_*           (YAML 动态生成)
         │
-        └── CursorAdapter (窗口标题检测)
-              │  _get_cursor_window_titles() via ctypes
+        ├── CursorAdapter (窗口标题检测)
+        │     │  _get_cursor_window_titles() via ctypes
+        │     │  状态机: idle ↔ waiting
+        │
+        └── WindsurfAdapter (窗口标题检测)
+              │  _get_windsurf_window_titles() via ctypes
               │  状态机: idle ↔ waiting
 ```
 

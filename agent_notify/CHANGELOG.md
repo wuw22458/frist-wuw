@@ -5,6 +5,12 @@ All notable changes to Agent Notify will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- Windsurf IDE 适配器（窗口标题轮询检测，与 Cursor 同架构）
+
 ## [1.0.0] - 2025-05-22
 
 ### Added
