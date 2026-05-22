@@ -1,0 +1,5 @@
+pyinstaller>=6.20
+pyinstaller-hooks-contrib>=2026
+pytest>=8.0
+pytest-mock>=3.14
+pyyaml>=6.0
