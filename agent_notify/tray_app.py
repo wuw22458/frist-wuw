@@ -11,15 +11,17 @@ from PySide6.QtWidgets import (
     QSystemTrayIcon, QMenu, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QApplication, QFrame, QPushButton,
     QFileDialog, QListWidget, QListWidgetItem, QGraphicsDropShadowEffect,
+    QLineEdit,
 )
 from PySide6.QtGui import (
     QIcon, QPixmap, QPainter, QColor, QAction, QRadialGradient, QPen,
-    QLinearGradient, QBrush, QFontMetrics,
+    QLinearGradient, QBrush, QFontMetrics, QShortcut, QKeySequence,
 )
 from PySide6.QtCore import Qt, QTimer, Signal, QPointF, QRectF, QSize
 
 from settings import load_config, save_config
 from events import AgentEvent, EventType
+from constants import __version__
 
 # ── 色板 ─────────────────────────────────────────────────
 BG = QColor(13, 17, 23)
@@ -383,7 +385,7 @@ class SettingsWindow(QWidget):
         icon_label.setStyleSheet("color: #58a6ff; font-size: 18px; border: none;")
         title_row.addWidget(icon_label)
 
-        title = QLabel("Agent Notify")
+        title = QLabel(f"Agent Notify v{__version__}")
         title.setStyleSheet(f"color: {T1}; font-size: 18px; font-weight: 700; border: none;")
         title_row.addWidget(title)
         title_row.addStretch()
@@ -517,6 +519,40 @@ class SettingsWindow(QWidget):
 
         self._update_sound_controls(self._sound_sw.isChecked())
         root.addWidget(notif_card)
+
+        # ── 免打扰卡片 ──
+        dnd_card = SectionCard("免打扰")
+
+        self._dnd_sw = self._make_toggle("启用免打扰时段")
+        self._dnd_sw.setChecked(self._config.get("dnd_enabled", False))
+        self._dnd_sw.toggled.connect(self._on_dnd_toggled)
+        self._dnd_sw.setToolTip("在指定时段内静音所有通知")
+        dnd_card.add_widget(self._dnd_sw)
+
+        dnd_time_row = QHBoxLayout()
+        dnd_time_row.setSpacing(8)
+
+        dnd_time_row.addWidget(self._make_label("从"))
+        self._dnd_start_input = QLineEdit(self._config.get("dnd_start", "22:00"))
+        self._dnd_start_input.setFixedWidth(60)
+        self._dnd_start_input.setMaxLength(5)
+        self._dnd_start_input.setStyleSheet(self._input_style())
+        self._dnd_start_input.editingFinished.connect(self._save_dnd_times)
+        dnd_time_row.addWidget(self._dnd_start_input)
+
+        dnd_time_row.addWidget(self._make_label("到"))
+        self._dnd_end_input = QLineEdit(self._config.get("dnd_end", "08:00"))
+        self._dnd_end_input.setFixedWidth(60)
+        self._dnd_end_input.setMaxLength(5)
+        self._dnd_end_input.setStyleSheet(self._input_style())
+        self._dnd_end_input.editingFinished.connect(self._save_dnd_times)
+        dnd_time_row.addWidget(self._dnd_end_input)
+
+        dnd_time_row.addStretch()
+        dnd_card.add_layout(dnd_time_row)
+
+        self._update_dnd_controls(self._dnd_sw.isChecked())
+        root.addWidget(dnd_card)
 
         # ── 最近通知卡片 ──
         history_card = SectionCard("最近通知")
@@ -774,6 +810,43 @@ class SettingsWindow(QWidget):
         save_config(self._config)
         self.config_changed.emit()
 
+    def _make_label(self, text: str) -> QLabel:
+        lbl = QLabel(text)
+        lbl.setStyleSheet(f"color: {T2}; font-size: 12px; border: none;")
+        return lbl
+
+    def _input_style(self) -> str:
+        return f"""
+            QLineEdit {{
+                background: rgba(0,0,0,0.25);
+                color: {T1};
+                border: 1px solid rgba(255,255,255,0.12);
+                border-radius: 6px;
+                padding: 4px 8px;
+                font-size: 12px;
+                font-family: {MONO};
+            }}
+            QLineEdit:focus {{
+                border-color: {ACCENT.name()};
+            }}
+        """
+
+    def _on_dnd_toggled(self, checked: bool):
+        self._config["dnd_enabled"] = checked
+        save_config(self._config)
+        self.config_changed.emit()
+        self._update_dnd_controls(checked)
+
+    def _update_dnd_controls(self, enabled: bool):
+        self._dnd_start_input.setEnabled(enabled)
+        self._dnd_end_input.setEnabled(enabled)
+
+    def _save_dnd_times(self):
+        self._config["dnd_start"] = self._dnd_start_input.text().strip()
+        self._config["dnd_end"] = self._dnd_end_input.text().strip()
+        save_config(self._config)
+        self.config_changed.emit()
+
     def resizeEvent(self, event):
         super().resizeEvent(event)
         self._glow.setGeometry(0, 0, self.width(), self.height())
@@ -804,11 +877,16 @@ class TrayApp(QSystemTrayIcon):
         self._paused = False
         self._notif_count = 0
 
+        # 全局快捷键（Ctrl+Shift+P 暂停/恢复）
+        self._hotkey_host = QWidget()
+        self._pause_shortcut = QShortcut(QKeySequence("Ctrl+Shift+P"), self._hotkey_host)
+        self._pause_shortcut.activated.connect(self.toggle_pause_from_menu)
+
         # 注入 adapter 信息到 SettingsWindow（延迟到 main.py 中 adapters 创建后）
         self._adapters = []
 
         self.setIcon(_make_icon())
-        self.setToolTip("Agent Notify")
+        self.setToolTip(f"Agent Notify v{__version__}")
 
         self._pt = QTimer(self)
         self._pt.timeout.connect(self._pulse)
@@ -847,7 +925,7 @@ class TrayApp(QSystemTrayIcon):
         menu.addAction(a1)
         menu.addSeparator()
 
-        self._pause_act = QAction("暂停", menu)
+        self._pause_act = QAction("暂停 (Ctrl+Shift+P)", menu)
         self._pause_act.triggered.connect(self.toggle_pause_from_menu)
         menu.addAction(self._pause_act)
         menu.addSeparator()
@@ -885,7 +963,7 @@ class TrayApp(QSystemTrayIcon):
         else:
             self._pause_act.setText("暂停")
             self.setIcon(_make_icon())
-            self.setToolTip("Agent Notify")
+            self.setToolTip(f"Agent Notify v{__version__}")
         self.pause_toggled.emit(is_paused)
 
     def _click(self, reason):

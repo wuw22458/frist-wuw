@@ -5,6 +5,16 @@ All notable changes to Agent Notify will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.2.0] - 2026-05-24
+
+### Added
+
+- 免打扰时段：可配置开始/结束时间，时段内自动静音所有通知
+- 全局快捷键 Ctrl+Shift+P：暂停/恢复监控
+- 版本号管理：`constants.__version__`，设置面板和托盘图标显示版本
+- 通知节流：同一 agent + 事件类型 3 秒内不重复通知，防止通知风暴
+- QMediaPlayer 错误状态自动重建
+
 ## [1.1.1] - 2026-05-24
 
 ### Added

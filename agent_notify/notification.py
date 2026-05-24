@@ -40,8 +40,19 @@ _audio: QAudioOutput | None = None
 
 
 def _get_player() -> QMediaPlayer | None:
-    """获取全局 QMediaPlayer 单例。创建失败返回 None。"""
+    """获取全局 QMediaPlayer 单例。错误状态自动重建。"""
     global _player, _audio
+    if _player is not None:
+        # 检测错误状态，自动重建
+        if _player.error() != QMediaPlayer.Error.NoError:
+            logger.warning("QMediaPlayer 错误状态 (%s)，重建播放器", _player.error())
+            try:
+                _player.setSource(QUrl())
+                _player.deleteLater()
+            except Exception:
+                pass
+            _player = None
+            _audio = None
     if _player is None:
         try:
             _player = QMediaPlayer()

@@ -13,6 +13,7 @@ import argparse
 import json
 import sys
 import shutil
+import time
 import winreg
 from pathlib import Path
 
@@ -23,7 +24,7 @@ from PySide6.QtGui import QColor, QPalette
 from tray_app import TrayApp
 from notification import notify
 from settings import load_config
-from constants import SIGNAL_DIR, APP_NAME, REGISTRY_KEY, migrate_from_old_path
+from constants import SIGNAL_DIR, APP_NAME, REGISTRY_KEY, migrate_from_old_path, __version__
 from lock_utils import check_single_instance, cleanup_lock
 from event_bus import EventBus, get_bus
 from log import get_logger
@@ -214,11 +215,41 @@ def main() -> None:
     tray.set_adapters(adapters)
     tray.show()
 
-    # 通知引擎：EventBus → 声音 + Toast
+    # 通知引擎：EventBus → 声音 + Toast（含节流 + 免打扰）
+    _last_notif: dict[str, float] = {}  # key → timestamp，用于去重
+    _THROTTLE_SEC = 3  # 同一事件 3 秒内不重复通知
+
+    def _is_dnd_active(cfg: dict) -> bool:
+        """检查当前是否在免打扰时段内。"""
+        if not cfg.get("dnd_enabled", False):
+            return False
+        now = time.strftime("%H:%M")
+        start = cfg.get("dnd_start", "22:00")
+        end = cfg.get("dnd_end", "08:00")
+        if start <= end:
+            return start <= now < end
+        return now >= start or now < end
+
     def _on_event(event):
         if tray.is_paused:
             logger.debug("已暂停，忽略事件: %s", event.message[:60])
             return
+        cfg = tray.get_config()
+
+        # 免打扰检查
+        if _is_dnd_active(cfg):
+            logger.debug("免打扰时段，忽略事件: %s", event.message[:60])
+            return
+
+        # 节流：同一 agent + event_type 组合在 N 秒内不重复通知
+        dedup_key = f"{event.agent_id}:{event.event_type}"
+        now = time.monotonic()
+        last = _last_notif.get(dedup_key, 0)
+        if now - last < _THROTTLE_SEC:
+            logger.debug("节流抑制: %s (%.1fs)", dedup_key, now - last)
+            return
+        _last_notif[dedup_key] = now
+
         title_map = {
             "waiting": "需要确认",
             "completed": "任务完成",
@@ -226,7 +257,6 @@ def main() -> None:
             "info": "通知",
         }
         title = title_map.get(event.event_type, "Agent Notify")
-        cfg = tray.get_config()
         if cfg.get("toast_enabled", True):
             notify(
                 title, event.message,
