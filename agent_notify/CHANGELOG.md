@@ -5,6 +5,13 @@ All notable changes to Agent Notify will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.1.1] - 2026-05-24
+
+### Fixed
+
+- 权限确认通知兜底：添加 PreToolUse 无 matcher hook，解决 Notification hook 不触发的问题
+- claude_code adapter event_map 添加 tool_use/permission 映射为 WAITING 类型
+
 ## [1.1.0] - 2026-05-23
 
 ### Added
