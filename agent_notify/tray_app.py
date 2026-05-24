@@ -847,6 +847,12 @@ class SettingsWindow(QWidget):
         save_config(self._config)
         self.config_changed.emit()
 
+    def showEvent(self, event):
+        super().showEvent(event)
+        # 首次显示时强制激活布局，避免窗口被压缩
+        self.layout().activate()
+        self._glow.setGeometry(0, 0, self.width(), self.height())
+
     def resizeEvent(self, event):
         super().resizeEvent(event)
         self._glow.setGeometry(0, 0, self.width(), self.height())
