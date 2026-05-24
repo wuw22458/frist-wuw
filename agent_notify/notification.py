@@ -11,6 +11,10 @@ from pathlib import Path
 from PySide6.QtMultimedia import QMediaPlayer, QAudioOutput
 from PySide6.QtCore import QUrl
 
+from log import get_logger
+
+logger = get_logger("notification")
+
 if getattr(sys, "frozen", False):
     _BASE_DIR = Path(sys._MEIPASS)
 else:
@@ -35,14 +39,20 @@ _player: QMediaPlayer | None = None
 _audio: QAudioOutput | None = None
 
 
-def _get_player() -> QMediaPlayer:
-    """获取全局 QMediaPlayer 单例。"""
+def _get_player() -> QMediaPlayer | None:
+    """获取全局 QMediaPlayer 单例。创建失败返回 None。"""
     global _player, _audio
     if _player is None:
-        _player = QMediaPlayer()
-        _audio = QAudioOutput()
-        _player.setAudioOutput(_audio)
-        _audio.setVolume(0.8)
+        try:
+            _player = QMediaPlayer()
+            _audio = QAudioOutput()
+            _player.setAudioOutput(_audio)
+            _audio.setVolume(0.8)
+        except Exception as e:
+            logger.error("QMediaPlayer 创建失败: %s", e)
+            _player = None
+            _audio = None
+            return None
     return _player
 
 
@@ -62,11 +72,19 @@ def play_sound(sound_path: str = "") -> None:
             path = str(default)
 
     if path is None:
+        logger.debug("无可用音频文件，跳过播放")
         return
 
     player = _get_player()
-    player.setSource(QUrl.fromLocalFile(path))
-    player.play()
+    if player is None:
+        return
+
+    try:
+        player.setSource(QUrl.fromLocalFile(path))
+        player.play()
+        logger.debug("播放提示音: %s", path)
+    except Exception as e:
+        logger.error("播放提示音失败 (%s): %s", path, e)
 
 
 def show_toast(title: str, message: str, source: str = "") -> None:
@@ -100,10 +118,16 @@ $xml.LoadXml($template)
 $toast = [Windows.UI.Notifications.ToastNotification]::new($xml)
 [Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier("Agent Notify").Show($toast)
 '''
-    subprocess.Popen(
-        ["powershell", "-ExecutionPolicy", "Bypass", "-Command", ps_script],
-        creationflags=subprocess.CREATE_NO_WINDOW,
-    )
+    try:
+        subprocess.Popen(
+            ["powershell", "-ExecutionPolicy", "Bypass", "-Command", ps_script],
+            creationflags=subprocess.CREATE_NO_WINDOW,
+        )
+        logger.debug("Toast 通知已发送: %s — %s", title, message[:60])
+    except FileNotFoundError:
+        logger.error("PowerShell 不可用，无法发送 Toast 通知")
+    except OSError as e:
+        logger.error("Toast 通知发送失败: %s", e)
 
 
 def _escape_xml(text: str) -> str:
@@ -127,6 +151,7 @@ def notify(title: str, message: str, sound: bool = True, source: str = "", sound
         source: 来源归属文字。
         sound_path: 自定义音频文件路径。
     """
+    logger.info("通知: [%s] %s (sound=%s, source=%s)", title, message[:80], sound, source)
     if sound:
         play_sound(sound_path)
     show_toast(title, message, source)

@@ -26,6 +26,9 @@ from settings import load_config
 from constants import SIGNAL_DIR, APP_NAME, REGISTRY_KEY, migrate_from_old_path
 from lock_utils import check_single_instance, cleanup_lock
 from event_bus import EventBus, get_bus
+from log import get_logger
+
+logger = get_logger("main")
 
 
 def get_exe_path() -> str:
@@ -45,16 +48,16 @@ def set_autostart(enable: bool = True) -> None:
             if not exe_path.endswith(".exe"):
                 cmd = f'"{sys.executable}" "{exe_path}"'
             winreg.SetValueEx(key, APP_NAME, 0, winreg.REG_SZ, cmd)
-            print(f"已设置开机自启: {cmd}")
+            logger.info("已设置开机自启: %s", cmd)
         else:
             try:
                 winreg.DeleteValue(key, APP_NAME)
-                print("已取消开机自启")
+                logger.info("已取消开机自启")
             except FileNotFoundError:
                 pass
         winreg.CloseKey(key)
     except OSError as e:
-        print(f"设置开机自启失败: {e}")
+        logger.error("设置开机自启失败: %s", e)
 
 
 def is_autostart_enabled() -> bool:
@@ -85,8 +88,8 @@ def install_hooks():
     if settings_path.exists():
         try:
             config = json.loads(settings_path.read_text(encoding="utf-8"))
-        except (json.JSONDecodeError, OSError):
-            pass
+        except (json.JSONDecodeError, OSError) as e:
+            logger.warning("读取 Claude Code settings 失败: %s", e)
 
     hooks = config.get("hooks", {})
     python_exe = f'"{sys.executable}"'
@@ -109,7 +112,7 @@ def install_hooks():
         json.dumps(config, ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
-    print(f"Hooks 已配置到 {settings_path}")
+    logger.info("Hooks 已配置到 %s", settings_path)
 
 
 def main() -> None:
@@ -137,7 +140,7 @@ def main() -> None:
 
     # 单实例检查
     if not check_single_instance():
-        print("Agent Notify 已在运行中")
+        logger.info("Agent Notify 已在运行中，退出")
         sys.exit(0)
 
     # 自动设置开机自启
@@ -198,13 +201,13 @@ def main() -> None:
                     config[key] = True  # 检测失败时默认启用
         from settings import save_config
         save_config(config)
-        print("[auto-detect] 已扫描已安装的 agent")
+        logger.info("[auto-detect] 已扫描已安装的 agent")
 
     # 实例化并启动所有启用的 adapter
     adapters = AdapterRegistry.create_enabled(bus, config)
     for adapter in adapters:
         adapter.start()
-        print(f"  [+] {adapter.display_name}: {adapter.description}")
+        logger.info("[+] %s: %s", adapter.display_name, adapter.description)
 
     # ── TrayApp + 通知引擎 ──
     tray = TrayApp(bus)
@@ -214,6 +217,7 @@ def main() -> None:
     # 通知引擎：EventBus → 声音 + Toast
     def _on_event(event):
         if tray.is_paused:
+            logger.debug("已暂停，忽略事件: %s", event.message[:60])
             return
         title_map = {
             "waiting": "需要确认",
@@ -222,7 +226,7 @@ def main() -> None:
             "info": "通知",
         }
         title = title_map.get(event.event_type, "Agent Notify")
-        cfg = tray._config
+        cfg = tray.get_config()
         if cfg.get("toast_enabled", True):
             notify(
                 title, event.message,

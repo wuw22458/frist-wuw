@@ -871,6 +871,10 @@ class TrayApp(QSystemTrayIcon):
     def _reload_config(self):
         self._config = load_config()
 
+    def get_config(self) -> dict:
+        """返回当前配置字典。"""
+        return self._config
+
     def _on_pause_toggled(self, is_paused: bool):
         self._paused = is_paused
         if is_paused:

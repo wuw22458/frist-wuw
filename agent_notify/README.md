@@ -1,7 +1,5 @@
 # Agent Notify
 
-![CI](https://github.com/wuw22458/frist-wuw/actions/workflows/ci.yml/badge.svg)
-
 > 通用 AI Agent 通知中心 — 当 Claude Code、Cursor、Windsurf、Aider 需要你时，第一时间提醒。
 
 Agent Notify 是一个 Windows 系统托盘应用，统一监控多个 AI 编码 Agent 的状态。当 Agent 需要权限确认或任务完成时，通过 Toast 通知 + 声音提醒你，再也不会错过。
@@ -142,7 +140,7 @@ agent_notify/
 │   └── custom.py        # YAML 自定义加载
 ├── hooks/
 │   └── claude_hook.py   # Claude Code hook 脚本
-├── tests/               # 单元测试（70 个）
+├── tests/               # 单元测试（93 个）
 ├── resources/           # 图标 + 提示音
 ├── requirements.txt     # 运行时依赖
 ├── requirements-dev.txt # 开发/构建依赖

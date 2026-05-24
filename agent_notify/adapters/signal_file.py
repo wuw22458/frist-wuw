@@ -10,10 +10,16 @@
 from __future__ import annotations
 
 import json
+from collections import OrderedDict
 
 from adapters.base import PollingAdapter
 from events import AgentEvent, EventType
 from constants import SIGNAL_DIR
+from log import get_logger
+
+logger = get_logger("signal_file")
+
+_MAX_PROCESSED = 500
 
 
 class SignalFileAdapter(PollingAdapter):
@@ -26,7 +32,7 @@ class SignalFileAdapter(PollingAdapter):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._processed: set[str] = set()
+        self._processed: OrderedDict[str, None] = OrderedDict()
         SIGNAL_DIR.mkdir(parents=True, exist_ok=True)
 
     def check(self) -> None:
@@ -34,25 +40,26 @@ class SignalFileAdapter(PollingAdapter):
         for f in sorted(SIGNAL_DIR.glob(self.glob_pattern)):
             if f.name in self._processed or f.name in self.exclude_names:
                 continue
-            self._processed.add(f.name)
+            self._processed[f.name] = None
+            # LRU 淘汰：超过上限时移除最旧的一半
+            while len(self._processed) > _MAX_PROCESSED:
+                self._processed.popitem(last=False)
             try:
                 data = json.loads(f.read_text(encoding="utf-8"))
                 raw_event = data.get("event", "unknown")
                 message = data.get("message", "")
                 event_type = self.event_map.get(raw_event, EventType.INFO)
+                logger.debug("[%s] 收到信号: event=%s msg=%s", self.agent_id, raw_event, message[:60])
                 self.emit(AgentEvent(
                     agent_id=self.agent_id,
                     event_type=event_type,
                     message=message,
                     metadata={"raw_event": raw_event},
                 ))
-            except (json.JSONDecodeError, OSError):
-                pass
+            except (json.JSONDecodeError, OSError) as e:
+                logger.warning("[%s] 信号文件解析失败 %s: %s", self.agent_id, f.name, e)
             finally:
                 try:
                     f.unlink()
                 except OSError:
                     pass
-
-        if len(self._processed) > 1000:
-            self._processed = set(list(self._processed)[-500:])

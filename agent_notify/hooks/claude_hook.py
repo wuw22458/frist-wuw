@@ -27,20 +27,11 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from constants import SIGNAL_DIR
 from lock_utils import is_process_running, LOCK_FILE
+from log import get_logger
+
+logger = get_logger("hook")
 
 APP_SCRIPT = Path(__file__).parent.parent / "main.py"
-DEBUG_LOG = SIGNAL_DIR / "hook_debug.log"
-
-
-def _debug(msg: str) -> None:
-    """写调试日志（仅在 SIGNAL_DIR 已存在时写入）。"""
-    try:
-        SIGNAL_DIR.mkdir(parents=True, exist_ok=True)
-        ts = time.strftime("%Y-%m-%d %H:%M:%S")
-        with open(DEBUG_LOG, "a", encoding="utf-8") as f:
-            f.write(f"[{ts}] {msg}\n")
-    except OSError:
-        pass
 
 
 def _read_stdin() -> dict:
@@ -52,18 +43,18 @@ def _read_stdin() -> dict:
     raw = ""
     try:
         if sys.stdin.isatty():
-            _debug("stdin is a tty,跳过读取")
+            logger.debug("stdin is a tty，跳过读取")
             return {}
         raw = sys.stdin.buffer.read(65536).decode("utf-8", errors="replace").strip()
     except (OSError, UnicodeDecodeError) as e:
-        _debug(f"stdin 读取异常: {e}")
+        logger.warning("stdin 读取异常: %s", e)
         return {}
     if not raw:
         return {}
     try:
         return json.loads(raw)
     except json.JSONDecodeError as e:
-        _debug(f"stdin JSON 解析失败: {e} | raw={raw[:200]}")
+        logger.warning("stdin JSON 解析失败: %s | raw=%s", e, raw[:200])
         return {}
 
 
@@ -88,47 +79,31 @@ def write_signal(event: str, message: str, source: str = "claude-code") -> None:
         "source": source,
     }
     signal_file.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
-    _debug(f"信号已写入: {signal_file.name} event={event} msg={message[:80]}")
+    logger.info("信号已写入: %s event=%s msg=%s", signal_file.name, event, message[:80])
 
 
-def ensure_app_running() -> bool:
-    """如果托盘应用未运行，则后台启动它。
+def ensure_app_running() -> None:
+    """如果托盘应用未运行，则后台启动它（非阻塞）。
 
-    通过锁文件中的 PID 判断是否已有实例。启动后轮询锁文件最多 2 秒。
-
-    Returns:
-        True 表示托盘应用已在运行或成功启动，False 表示启动失败。
+    通过锁文件中的 PID 判断是否已有实例。启动后立即返回，不等待结果。
     """
     try:
         if LOCK_FILE.exists():
             pid = int(LOCK_FILE.read_text().strip())
             if is_process_running(pid):
-                _debug(f"托盘应用已在运行, PID={pid}")
-                return True
+                logger.debug("托盘应用已在运行, PID=%d", pid)
+                return
     except (ValueError, OSError):
         pass
 
-    _debug("托盘应用未运行，正在启动...")
+    logger.info("托盘应用未运行，正在启动...")
     try:
         subprocess.Popen(
             [sys.executable, str(APP_SCRIPT)],
             creationflags=subprocess.DETACHED_PROCESS | subprocess.CREATE_NO_WINDOW,
         )
-        for _ in range(10):
-            if LOCK_FILE.exists():
-                try:
-                    pid = int(LOCK_FILE.read_text().strip())
-                    if pid > 0:
-                        _debug(f"托盘应用已启动, PID={pid}")
-                        return True
-                except (ValueError, OSError):
-                    pass
-            time.sleep(0.2)
-        _debug("启动超时: 锁文件未出现")
     except OSError as e:
-        _debug(f"启动失败: {e}")
-        return False
-    return False
+        logger.error("启动托盘应用失败: %s", e)
 
 
 def _extract_tool_message(stdin_context: dict) -> str:
@@ -165,15 +140,15 @@ def main() -> None:
     环境变量 CLAUDE_NOTIFICATION 提供备用通知消息。
     输出空 JSON，不拦截 Claude Code 的后续操作。
     """
-    _debug(f"hook 启动, args={sys.argv}")
-
     parser = argparse.ArgumentParser()
     parser.add_argument("--event", required=True, choices=["notification", "stop", "tool_use", "permission"])
     args = parser.parse_args()
 
+    logger.debug("hook 启动, event=%s, args=%s", args.event, sys.argv)
+
     # 读取 stdin（Claude Code 传入的 hook 上下文）
     stdin_context = _read_stdin()
-    _debug(f"stdin 解析结果: keys={list(stdin_context.keys())}")
+    logger.debug("stdin 解析结果: keys=%s", list(stdin_context.keys()))
 
     # 从 stdin 或环境变量提取消息
     if args.event == "notification":
@@ -189,6 +164,12 @@ def main() -> None:
         message = _extract_tool_message(stdin_context)
     elif args.event == "permission":
         tool_name = stdin_context.get("tool_name", "")
+        # 只对有写操作/执行能力的工具通知，只读/UI 工具静默跳过
+        _PERMISSION_TOOLS = {"Bash", "Write", "Edit", "NotebookEdit"}
+        if tool_name not in _PERMISSION_TOOLS:
+            logger.debug("跳过无需权限的工具: %s", tool_name)
+            print("{}")
+            return
         tool_input = stdin_context.get("tool_input", {})
         if tool_name == "Bash":
             cmd = tool_input.get("command", "")
@@ -204,17 +185,17 @@ def main() -> None:
     # 写信号文件
     write_signal(args.event, message)
 
-    # 确保托盘应用在运行
+    # 确保托盘应用在运行（非阻塞）
     ensure_app_running()
 
     # 输出空 JSON（不拦截操作）
     print("{}")
-    _debug("hook 完成")
+    logger.debug("hook 完成")
 
 
 if __name__ == "__main__":
     try:
         main()
     except Exception as e:
-        _debug(f"未捕获异常: {e}")
+        logger.exception("未捕获异常: %s", e)
         print("{}")
