@@ -24,6 +24,8 @@ class ClaudeCodeAdapter(SignalFileAdapter):
     exclude_names = {"config.json"}
     event_map = {
         "notification": EventType.WAITING,
+        "tool_use": EventType.WAITING,
+        "permission": EventType.WAITING,
         "stop": EventType.COMPLETED,
     }
 

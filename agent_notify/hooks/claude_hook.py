@@ -8,6 +8,7 @@
   python claude_hook.py --event notification
   python claude_hook.py --event stop
   python claude_hook.py --event tool_use
+  python claude_hook.py --event permission
 
 stdin 接收 Claude Code 传入的 JSON 上下文。
 环境变量 CLAUDE_NOTIFICATION 包含通知消息（Notification hook）。
@@ -167,7 +168,7 @@ def main() -> None:
     _debug(f"hook 启动, args={sys.argv}")
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--event", required=True, choices=["notification", "stop", "tool_use"])
+    parser.add_argument("--event", required=True, choices=["notification", "stop", "tool_use", "permission"])
     args = parser.parse_args()
 
     # 读取 stdin（Claude Code 传入的 hook 上下文）
@@ -186,6 +187,17 @@ def main() -> None:
             message = f"需要确认: {message}" if message else "Claude Code 需要工具权限"
     elif args.event == "tool_use":
         message = _extract_tool_message(stdin_context)
+    elif args.event == "permission":
+        tool_name = stdin_context.get("tool_name", "")
+        tool_input = stdin_context.get("tool_input", {})
+        if tool_name == "Bash":
+            cmd = tool_input.get("command", "")
+            message = f"需要确认命令: {cmd[:100]}" if cmd else "需要确认 Bash 命令"
+        elif tool_name in ("Write", "Edit"):
+            path = tool_input.get("file_path", "")
+            message = f"需要确认写入: {path}" if path else f"需要确认 {tool_name} 操作"
+        else:
+            message = f"需要确认: {tool_name}" if tool_name else "Claude Code 需要工具权限"
     else:
         message = "Claude Code 任务已完成"
 
