@@ -213,8 +213,8 @@ class TestHookE2E:
         assert result.returncode == 0, result.stderr.decode(errors="replace")
         assert result.stdout.strip() == b"{}"
 
-    def test_permission_event_with_bash(self):
-        """permission 事件（Bash 工具）应成功执行。"""
+    def test_permission_event_bash_filtered(self):
+        """Bash 工具不应产生信号文件（PreToolUse 在权限决定前触发，auto-approve 下会误报）。"""
         stdin = {"tool_name": "Bash", "tool_input": {"command": "ls -la"}}
         result = self._run_hook("permission", stdin)
         assert result.returncode == 0, result.stderr.decode(errors="replace")

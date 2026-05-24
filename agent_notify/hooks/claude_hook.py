@@ -164,17 +164,15 @@ def main() -> None:
         message = _extract_tool_message(stdin_context)
     elif args.event == "permission":
         tool_name = stdin_context.get("tool_name", "")
-        # 只对有写操作/执行能力的工具通知，只读/UI 工具静默跳过
-        _PERMISSION_TOOLS = {"Bash", "Write", "Edit", "NotebookEdit"}
+        # 只对写操作工具通知。Bash 不在白名单中，因为 PreToolUse hook 在权限决定前触发，
+        # auto-approve 模式下 Bash 命令不会真正需要确认，但 hook 仍然会触发。
+        _PERMISSION_TOOLS = {"Write", "Edit", "NotebookEdit"}
         if tool_name not in _PERMISSION_TOOLS:
-            logger.debug("跳过无需权限的工具: %s", tool_name)
+            logger.debug("跳过工具: %s (permission_mode=%s)", tool_name, stdin_context.get("permission_mode"))
             print("{}")
             return
         tool_input = stdin_context.get("tool_input", {})
-        if tool_name == "Bash":
-            cmd = tool_input.get("command", "")
-            message = f"需要确认命令: {cmd[:100]}" if cmd else "需要确认 Bash 命令"
-        elif tool_name in ("Write", "Edit"):
+        if tool_name in ("Write", "Edit"):
             path = tool_input.get("file_path", "")
             message = f"需要确认写入: {path}" if path else f"需要确认 {tool_name} 操作"
         else:
