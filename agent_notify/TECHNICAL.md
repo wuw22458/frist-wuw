@@ -247,7 +247,7 @@ Agent 需要写入 JSON 文件到 `~/.agent-notify/`：
 
 ### 测试覆盖
 
-- 67 个测试用例，覆盖所有核心模块
+- 70 个测试用例，覆盖所有核心模块
 - `conftest.py` 提供 `qapp`（session 级 QApplication）和 `signal_dir`（monkeypatch 隔离临时目录）
 - 运行：`python -m pytest tests/ -v`
 

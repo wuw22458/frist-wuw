@@ -5,11 +5,16 @@ All notable changes to Agent Notify will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [1.1.0] - 2026-05-23
 
 ### Added
 
 - Windsurf IDE 适配器（窗口标题轮询检测，与 Cursor 同架构）
+
+### Fixed
+
+- PreToolUse hook 支持：AskUserQuestion / ExitToolMode 触发通知
+- PyInstaller 打包配置添加 adapters.windsurf
 
 ## [1.0.0] - 2025-05-22
 
@@ -28,7 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Cursor 窗口标题轮询检测
 - EventBus 解耦架构（Adapter → EventBus → UI/通知）
 - Adapter 继承层次（AgentAdapter → PollingAdapter → SignalFileAdapter）
-- 67 个单元测试（3 层测试架构：纯 Python / mock / QApplication）
+- 70 个单元测试（3 层测试架构：纯 Python / mock / QApplication）
 - 完整文档（README.md + TECHNICAL.md）
 - GitHub Actions CI/CD（自动测试 + 打包）
 - MIT License

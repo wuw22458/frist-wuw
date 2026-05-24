@@ -142,7 +142,7 @@ agent_notify/
 │   └── custom.py        # YAML 自定义加载
 ├── hooks/
 │   └── claude_hook.py   # Claude Code hook 脚本
-├── tests/               # 单元测试（67 个）
+├── tests/               # 单元测试（70 个）
 ├── resources/           # 图标 + 提示音
 ├── requirements.txt     # 运行时依赖
 ├── requirements-dev.txt # 开发/构建依赖
