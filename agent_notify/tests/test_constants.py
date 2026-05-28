@@ -1,8 +1,6 @@
 """constants.py 迁移逻辑单元测试。"""
 
-import shutil
 import pytest
-from pathlib import Path
 
 
 @pytest.fixture()

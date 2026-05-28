@@ -13,8 +13,8 @@ import json
 from collections import OrderedDict
 
 from adapters.base import PollingAdapter
-from events import AgentEvent, EventType
 from constants import SIGNAL_DIR
+from events import AgentEvent, EventType
 from log import get_logger
 
 logger = get_logger("signal_file")
@@ -56,10 +56,6 @@ class SignalFileAdapter(PollingAdapter):
                     message=message,
                     metadata={"raw_event": raw_event},
                 ))
+                f.unlink()
             except (json.JSONDecodeError, OSError) as e:
-                logger.warning("[%s] 信号文件解析失败 %s: %s", self.agent_id, f.name, e)
-            finally:
-                try:
-                    f.unlink()
-                except OSError:
-                    pass
+                logger.warning("[%s] 信号文件解析失败 %s: %s | path=%s", self.agent_id, f.name, e, f)

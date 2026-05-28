@@ -10,6 +10,7 @@
 
 import ctypes
 import os
+
 from constants import LOCK_FILE, PROCESS_QUERY_LIMITED_INFORMATION
 
 

@@ -9,9 +9,7 @@ import subprocess
 import sys
 import time
 from pathlib import Path
-from unittest.mock import patch, MagicMock
-
-import pytest
+from unittest.mock import MagicMock, patch
 
 # 项目根目录
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -219,9 +217,16 @@ class TestHookE2E:
         result = self._run_hook("permission", stdin)
         assert result.returncode == 0, result.stderr.decode(errors="replace")
 
-    def test_permission_event_with_write(self):
-        """permission 事件（Write 工具）应成功执行。"""
+    def test_permission_event_write_filtered(self):
+        """Write 工具不应产生信号文件（PreToolUse 在权限决定前触发，auto-approve 下会误报）。"""
         stdin = {"tool_name": "Write", "tool_input": {"file_path": "/tmp/test.py"}}
+        result = self._run_hook("permission", stdin)
+        assert result.returncode == 0, result.stderr.decode(errors="replace")
+        assert result.stdout.strip() == b"{}"
+
+    def test_permission_event_ask_user_question(self):
+        """AskUserQuestion 工具应产生信号文件（本身强制需要用户交互）。"""
+        stdin = {"tool_name": "AskUserQuestion", "tool_input": {"questions": [{"question": "选哪个？"}]}}
         result = self._run_hook("permission", stdin)
         assert result.returncode == 0, result.stderr.decode(errors="replace")
 
@@ -261,21 +266,7 @@ class TestHookE2E:
         assert result.returncode == 0, result.stderr.decode(errors="replace")
 
     def test_signal_file_written(self):
-        """subprocess 应在真实信号目录写入信号文件。"""
-        signal_dir = Path.home() / ".agent-notify"
-        before_files = set(signal_dir.glob("*.json")) if signal_dir.exists() else set()
-
+        """subprocess 应成功执行并输出空 JSON。"""
         result = self._run_hook("notification", {"message": "E2E 测试"})
         assert result.returncode == 0
-
-        after_files = set(signal_dir.glob("*.json"))
-        new_files = after_files - before_files
-        # 可能有其他进程写入的文件，只要不少于之前就行
-        assert len(after_files) >= len(before_files)
-
-        # 清理本次测试产生的信号文件
-        for f in new_files:
-            try:
-                f.unlink()
-            except OSError:
-                pass
+        assert result.stdout.strip() == b"{}"

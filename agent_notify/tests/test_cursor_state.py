@@ -1,7 +1,9 @@
 """CursorAdapter 状态机单元测试。"""
 
+from unittest.mock import patch
+
 import pytest
-from unittest.mock import patch, MagicMock
+
 from events import EventType
 
 
@@ -21,7 +23,7 @@ class TestCursorStateMachine:
         adapter, bus = cursor_adapter
         received = []
         bus.event_received.connect(lambda e: received.append(e))
-        with patch("adapters.cursor._get_cursor_window_titles", return_value=[]):
+        with patch("adapters.base._enum_window_titles", return_value=[]):
             adapter.check()
         assert len(received) == 0
         assert adapter._waiting is False
@@ -30,7 +32,7 @@ class TestCursorStateMachine:
         adapter, bus = cursor_adapter
         received = []
         bus.event_received.connect(lambda e: received.append(e))
-        with patch("adapters.cursor._get_cursor_window_titles", return_value=["Cursor - needs attention"]):
+        with patch("adapters.base._enum_window_titles", return_value=["Cursor - needs attention"]):
             adapter.check()
         assert len(received) == 1
         assert received[0].event_type == EventType.WAITING
@@ -40,7 +42,7 @@ class TestCursorStateMachine:
         adapter, bus = cursor_adapter
         received = []
         bus.event_received.connect(lambda e: received.append(e))
-        with patch("adapters.cursor._get_cursor_window_titles", return_value=["Cursor - needs attention"]):
+        with patch("adapters.base._enum_window_titles", return_value=["Cursor - needs attention"]):
             adapter.check()
             adapter.check()  # 第二次不应重复发射
         assert len(received) == 1
@@ -49,9 +51,9 @@ class TestCursorStateMachine:
         adapter, bus = cursor_adapter
         received = []
         bus.event_received.connect(lambda e: received.append(e))
-        with patch("adapters.cursor._get_cursor_window_titles", return_value=["Cursor - needs attention"]):
+        with patch("adapters.base._enum_window_titles", return_value=["Cursor - needs attention"]):
             adapter.check()
-        with patch("adapters.cursor._get_cursor_window_titles", return_value=[]):
+        with patch("adapters.base._enum_window_titles", return_value=[]):
             adapter.check()
         assert len(received) == 2
         assert received[1].event_type == EventType.COMPLETED
@@ -59,6 +61,6 @@ class TestCursorStateMachine:
 
     def test_exception_silent(self, cursor_adapter):
         adapter, bus = cursor_adapter
-        with patch("adapters.cursor._get_cursor_window_titles", side_effect=Exception("ctypes error")):
+        with patch("adapters.base._enum_window_titles", side_effect=Exception("ctypes error")):
             adapter.check()  # 不应抛异常
         assert adapter._waiting is False

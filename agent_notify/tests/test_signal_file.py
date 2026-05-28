@@ -1,7 +1,9 @@
 """SignalFileAdapter 信号文件轮询单元测试。"""
 
 import json
+
 import pytest
+
 from events import EventType
 
 
@@ -58,11 +60,12 @@ class TestSignalFileCheck:
         assert len(received) == 0
         assert (sd / "config.json").exists()  # 不删除
 
-    def test_invalid_json_file_deleted(self, adapter):
+    def test_invalid_json_file_preserved_for_debug(self, adapter):
+        """解析失败的信号文件保留不删除，便于排查问题。"""
         inst, bus, sd = adapter
         (sd / "bad.json").write_text("not json", encoding="utf-8")
         inst.check()
-        assert not (sd / "bad.json").exists()
+        assert (sd / "bad.json").exists()
 
     def test_processed_set_prevents_duplicate(self, adapter):
         inst, bus, sd = adapter

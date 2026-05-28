@@ -18,6 +18,7 @@ for _importer, _modname, _ispkg in pkgutil.iter_modules(__path__):
 
 # 加载用户自定义 Agent（从 YAML 配置文件）
 from adapters.custom import load_custom_agents  # noqa: E402
+
 load_custom_agents()
 
 __all__ = ["AgentAdapter", "PollingAdapter", "AdapterRegistry", "register_adapter"]

@@ -8,8 +8,8 @@ import subprocess
 import sys
 from pathlib import Path
 
-from PySide6.QtMultimedia import QMediaPlayer, QAudioOutput
 from PySide6.QtCore import QUrl
+from PySide6.QtMultimedia import QAudioOutput, QMediaPlayer
 
 from log import get_logger
 

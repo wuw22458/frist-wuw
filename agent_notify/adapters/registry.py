@@ -6,32 +6,30 @@
 
 from __future__ import annotations
 
-from typing import Type
-
-from event_bus import EventBus
 from adapters.base import AgentAdapter
+from event_bus import EventBus
 
 
 class AdapterRegistry:
     """管理所有已注册的 AgentAdapter 类和实例。"""
 
-    _classes: dict[str, Type[AgentAdapter]] = {}
+    _classes: dict[str, type[AgentAdapter]] = {}
     _instances: dict[str, AgentAdapter] = {}
 
     @classmethod
-    def _register(cls, adapter_cls: Type[AgentAdapter]) -> None:
+    def _register(cls, adapter_cls: type[AgentAdapter]) -> None:
         agent_id = adapter_cls.agent_id
         if not agent_id:
             raise ValueError(f"{adapter_cls.__name__} 必须定义 agent_id")
         cls._classes[agent_id] = adapter_cls
 
     @classmethod
-    def get_all_classes(cls) -> list[Type[AgentAdapter]]:
+    def get_all_classes(cls) -> list[type[AgentAdapter]]:
         """返回所有已注册的 adapter 类。"""
         return list(cls._classes.values())
 
     @classmethod
-    def get_class(cls, agent_id: str) -> Type[AgentAdapter] | None:
+    def get_class(cls, agent_id: str) -> type[AgentAdapter] | None:
         """按 agent_id 获取 adapter 类。"""
         return cls._classes.get(agent_id)
 
@@ -81,7 +79,7 @@ class AdapterRegistry:
         cls._instances.clear()
 
 
-def register_adapter(cls: Type[AgentAdapter]) -> Type[AgentAdapter]:
+def register_adapter(cls: type[AgentAdapter]) -> type[AgentAdapter]:
     """装饰器：将 AgentAdapter 子类注册到 AdapterRegistry。
 
     用法：

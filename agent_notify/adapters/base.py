@@ -9,12 +9,14 @@
 
 from __future__ import annotations
 
+import ctypes
+import ctypes.wintypes
 from abc import ABC, abstractmethod
 
 from PySide6.QtCore import QTimer
 
 from event_bus import EventBus
-from events import AgentEvent
+from events import AgentEvent, EventType
 
 
 class AgentAdapter(ABC):
@@ -106,3 +108,71 @@ class PollingAdapter(AgentAdapter):
     @abstractmethod
     def check(self) -> None:
         """单次轮询检测。由 QTimer 定时调用。"""
+
+
+def _enum_window_titles(title_filter: str) -> list[str]:
+    """枚举所有窗口标题，返回含 title_filter 且含 'needs attention' 的标题。"""
+    titles: list[str] = []
+
+    def _enum_callback(hwnd, _):
+        length = ctypes.windll.user32.GetWindowTextLengthW(hwnd)
+        if length > 0:
+            buf = ctypes.create_unicode_buffer(length + 1)
+            ctypes.windll.user32.GetWindowTextW(hwnd, buf, length + 1)
+            title = buf.value
+            if title_filter in title and "needs attention" in title.lower():
+                titles.append(title)
+        return True
+
+    WNDENUMPROC = ctypes.WINFUNCTYPE(ctypes.wintypes.BOOL, ctypes.wintypes.HWND, ctypes.wintypes.LPARAM)
+    ctypes.windll.user32.EnumWindows(WNDENUMPROC(_enum_callback), 0)
+    return titles
+
+
+class WindowPollingAdapter(PollingAdapter):
+    """基于窗口标题轮询的 adapter 基类（Cursor / Windsurf 等 IDE）。
+
+    子类只需声明：
+        agent_id, display_name, description, poll_interval_ms
+        _window_title_filter: 窗口标题中需包含的字符串（如 "Cursor"）
+        _attention_message:   需要确认时的消息
+        _continue_message:    继续运行时的消息
+        detect():             检测是否已安装
+    """
+
+    _window_title_filter: str = ""
+    _attention_message: str = "Agent 需要你的确认"
+    _continue_message: str = "Agent 已继续运行"
+    poll_interval_ms: int = 3000
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._waiting = False
+
+    def start(self) -> None:
+        super().start()
+        self._waiting = False
+
+    def check(self) -> None:
+        try:
+            titles = _enum_window_titles(self._window_title_filter)
+        except Exception:
+            return
+
+        has_attention = len(titles) > 0
+
+        if has_attention and not self._waiting:
+            self._waiting = True
+            self.emit(AgentEvent(
+                agent_id=self.agent_id,
+                event_type=EventType.WAITING,
+                message=self._attention_message,
+                metadata={"window_titles": titles},
+            ))
+        elif not has_attention and self._waiting:
+            self._waiting = False
+            self.emit(AgentEvent(
+                agent_id=self.agent_id,
+                event_type=EventType.COMPLETED,
+                message=self._continue_message,
+            ))

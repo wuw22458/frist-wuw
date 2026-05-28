@@ -1,8 +1,8 @@
 """共享 fixtures — QApplication 单例和信号目录隔离。"""
 
 import sys
+
 import pytest
-from pathlib import Path
 
 
 @pytest.fixture(scope="session")

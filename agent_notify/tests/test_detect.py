@@ -1,7 +1,6 @@
 """各 adapter 的 detect() 方法单元测试。"""
 
-import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 
 class TestClaudeCodeDetect:

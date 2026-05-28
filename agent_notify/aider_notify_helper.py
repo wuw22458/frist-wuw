@@ -8,7 +8,6 @@ AgentNotify 的 AiderAdapter 会检测到该信号并弹出通知。
 """
 
 import json
-import sys
 import time
 from pathlib import Path
 

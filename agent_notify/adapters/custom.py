@@ -18,12 +18,13 @@ YAML 格式示例：
 
 from __future__ import annotations
 
-from pathlib import Path
-
-from adapters.signal_file import SignalFileAdapter
 from adapters.registry import AdapterRegistry
-from events import EventType
+from adapters.signal_file import SignalFileAdapter
 from constants import SIGNAL_DIR
+from events import EventType
+from log import get_logger
+
+logger = get_logger("adapters.custom")
 
 CUSTOM_AGENTS_FILE = SIGNAL_DIR / "custom_agents.yaml"
 
@@ -92,9 +93,10 @@ def load_custom_agents() -> list[type[SignalFileAdapter]]:
         return _load_custom_agents_json_fallback()
 
     try:
-        with open(CUSTOM_AGENTS_FILE, "r", encoding="utf-8") as f:
+        with open(CUSTOM_AGENTS_FILE, encoding="utf-8") as f:
             data = yaml.safe_load(f)
-    except Exception:
+    except Exception as e:
+        logger.warning("解析自定义 agent 配置失败 (%s): %s", CUSTOM_AGENTS_FILE, e)
         return []
 
     if not data or "agents" not in data:
@@ -109,7 +111,8 @@ def _load_custom_agents_json_fallback() -> list[type[SignalFileAdapter]]:
 
     try:
         data = json.loads(CUSTOM_AGENTS_FILE.read_text(encoding="utf-8"))
-    except Exception:
+    except Exception as e:
+        logger.warning("解析自定义 agent 配置失败 (%s): %s", CUSTOM_AGENTS_FILE, e)
         return []
 
     if not data or "agents" not in data:

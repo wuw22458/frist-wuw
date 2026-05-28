@@ -1,6 +1,5 @@
 """EventBus 中央事件总线单元测试。"""
 
-import pytest
 from events import AgentEvent, EventType
 
 

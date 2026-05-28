@@ -26,7 +26,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from constants import SIGNAL_DIR
-from lock_utils import is_process_running, LOCK_FILE
+from lock_utils import LOCK_FILE, is_process_running
 from log import get_logger
 
 logger = get_logger("hook")
@@ -164,19 +164,15 @@ def main() -> None:
         message = _extract_tool_message(stdin_context)
     elif args.event == "permission":
         tool_name = stdin_context.get("tool_name", "")
-        # 只对写操作工具通知。Bash 不在白名单中，因为 PreToolUse hook 在权限决定前触发，
-        # auto-approve 模式下 Bash 命令不会真正需要确认，但 hook 仍然会触发。
-        _PERMISSION_TOOLS = {"Write", "Edit", "NotebookEdit"}
-        if tool_name not in _PERMISSION_TOOLS:
+        # 只对本身强制需要用户交互的工具通知。
+        # Write/Edit/NotebookEdit 不在此列，因为 PreToolUse hook 在权限决定前触发，
+        # auto-approve 模式下这些工具会被自动批准，hook 无法区分。
+        _INTERACTIVE_TOOLS = {"AskUserQuestion", "ExitToolMode"}
+        if tool_name not in _INTERACTIVE_TOOLS:
             logger.debug("跳过工具: %s (permission_mode=%s)", tool_name, stdin_context.get("permission_mode"))
             print("{}")
             return
-        tool_input = stdin_context.get("tool_input", {})
-        if tool_name in ("Write", "Edit"):
-            path = tool_input.get("file_path", "")
-            message = f"需要确认写入: {path}" if path else f"需要确认 {tool_name} 操作"
-        else:
-            message = f"需要确认: {tool_name}" if tool_name else "Claude Code 需要工具权限"
+        message = _extract_tool_message(stdin_context)
     else:
         message = "Claude Code 任务已完成"
 

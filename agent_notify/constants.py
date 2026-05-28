@@ -12,12 +12,13 @@
 import shutil
 from pathlib import Path
 
-__version__ = "1.2.0"
+__version__ = "1.2.1"
 
 # ── 路径（解耦自 ~/.claude，使用独立的 ~/.agent-notify）──
 SIGNAL_DIR = Path.home() / ".agent-notify"
 LOCK_FILE = SIGNAL_DIR / ".lock"
 CONFIG_FILE = SIGNAL_DIR / "config.json"
+HISTORY_FILE = SIGNAL_DIR / "history.json"
 
 # 旧版路径（用于迁移）
 _OLD_SIGNAL_DIR = Path.home() / ".claude" / "agent-notify"

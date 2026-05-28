@@ -24,8 +24,8 @@
 ### 1. Fork & Clone
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/frist-wuw.git
-cd frist-wuw/agent_notify
+git clone https://github.com/YOUR_USERNAME/agent_notify.git
+cd agent_notify
 ```
 
 ### 2. 搭建开发环境

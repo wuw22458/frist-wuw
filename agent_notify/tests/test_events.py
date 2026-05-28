@@ -1,6 +1,7 @@
 """AgentEvent + EventType 单元测试。"""
 
 import time
+
 from events import AgentEvent, EventType
 
 
@@ -13,7 +14,7 @@ class TestEventType:
 
     def test_string_comparison(self):
         assert EventType.WAITING == "waiting"
-        assert "waiting" == EventType.WAITING
+        assert EventType.WAITING == "waiting"
 
 
 class TestAgentEvent:

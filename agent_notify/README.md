@@ -29,8 +29,8 @@ AgentNotify.exe --install-hooks
 ### 方式二：从源码运行
 
 ```bash
-git clone https://github.com/wuw22458/frist-wuw.git
-cd frist-wuw/agent_notify
+git clone https://github.com/wuw22458/agent_notify.git
+cd agent_notify
 pip install -r requirements.txt
 python main.py
 ```

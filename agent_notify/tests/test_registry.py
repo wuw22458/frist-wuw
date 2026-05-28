@@ -1,8 +1,9 @@
 """AdapterRegistry 注册表单元测试。"""
 
 import pytest
-from adapters.registry import AdapterRegistry, register_adapter
+
 from adapters.base import AgentAdapter
+from adapters.registry import AdapterRegistry, register_adapter
 
 
 @pytest.fixture(autouse=True)

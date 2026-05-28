@@ -5,6 +5,7 @@
 """
 
 import json
+
 from constants import CONFIG_FILE, DEFAULT_CONFIG
 from log import get_logger
 
@@ -12,7 +13,7 @@ logger = get_logger("settings")
 
 # 已知配置键（DEFAULT_CONFIG + adapter 动态键前缀）
 _KNOWN_PREFIXES = ("source_", "custom_sound", "sound_enabled", "toast_enabled",
-                   "auto_start", "max_history")
+                   "auto_start", "max_history", "dnd_")
 
 
 def _validate_config(config: dict) -> dict:
