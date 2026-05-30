@@ -151,7 +151,7 @@ def main() -> None:
             logger.error("[!] %s 启动失败: %s", adapter.display_name, e)
 
     # ── TrayApp + 通知引擎 ──
-    tray = TrayApp(bus)
+    tray = TrayApp(bus, config=config)
     tray.set_adapters(adapters)
     tray.show()
 

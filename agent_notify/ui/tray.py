@@ -26,11 +26,11 @@ from ui.widgets import (
 class TrayApp(QSystemTrayIcon):
     pause_toggled = Signal(bool)
 
-    def __init__(self, event_bus=None, parent=None):
+    def __init__(self, event_bus=None, config=None, parent=None):
         super().__init__(parent)
         self._bus = event_bus
-        self._config = load_config()
-        self._settings = SettingsWindow()
+        self._config = config if config is not None else load_config()
+        self._settings = SettingsWindow(config=self._config)
         self._settings.config_changed.connect(self._reload_config)
         self._settings.pause_toggled.connect(self._on_pause_toggled)
         self._pulse_on = False

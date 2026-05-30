@@ -67,9 +67,13 @@ class SignalFileAdapter(PollingAdapter):
                 f.unlink()
             except (json.JSONDecodeError, OSError) as e:
                 logger.warning(
-                    "[%s] 信号文件解析失败 %s: %s | path=%s",
+                    "[%s] 信号文件解析失败，已删除 %s: %s | path=%s",
                     self.agent_id,
                     f.name,
                     e,
                     f,
                 )
+                try:
+                    f.unlink()
+                except OSError:
+                    pass

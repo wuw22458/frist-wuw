@@ -20,6 +20,7 @@ import os
 import subprocess
 import sys
 import time
+import uuid
 from pathlib import Path
 
 # 将项目根目录加入 sys.path，以便导入共享模块
@@ -71,7 +72,8 @@ def write_signal(event: str, message: str, source: str = "claude-code") -> None:
     """
     SIGNAL_DIR.mkdir(parents=True, exist_ok=True)
     ts = int(time.time() * 1000)
-    signal_file = SIGNAL_DIR / f"{ts}.json"
+    uid = uuid.uuid4().hex[:8]
+    signal_file = SIGNAL_DIR / f"{ts}_{uid}.json"
     data = {
         "event": event,
         "message": message,
@@ -173,11 +175,6 @@ def main() -> None:
         # auto-approve 模式下这些工具会被自动批准，hook 无法区分。
         _INTERACTIVE_TOOLS = {"AskUserQuestion", "ExitToolMode"}
         if tool_name not in _INTERACTIVE_TOOLS:
-            logger.debug(
-                "跳过工具: %s (permission_mode=%s)",
-                tool_name,
-                stdin_context.get("permission_mode"),
-            )
             print("{}")
             return
         message = _extract_tool_message(stdin_context)

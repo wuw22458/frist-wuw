@@ -242,7 +242,7 @@ _ICON_CACHE: dict[tuple, QPixmap] = {}
 
 
 def _make_icon(color: str = "#58a6ff", alert: bool = False) -> QIcon:
-    cache_key = (alert,)
+    cache_key = (color, alert)
     if cache_key in _ICON_CACHE:
         return _ICON_CACHE[cache_key].copy()
     S = 64

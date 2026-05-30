@@ -55,7 +55,7 @@ class SettingsWindow(QWidget):
     config_changed = Signal()
     pause_toggled = Signal(bool)
 
-    def __init__(self, parent=None):
+    def __init__(self, config=None, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Agent Notify")
         self.setMinimumSize(470, 560)
@@ -66,7 +66,7 @@ class SettingsWindow(QWidget):
         self.setWindowIcon(_make_icon())
         self.setAttribute(Qt.WA_StyledBackground, True)
 
-        self._config = load_config()
+        self._config = config if config is not None else load_config()
         self._is_paused = False
         self._history: list[dict] = self._load_history()
 

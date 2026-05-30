@@ -2,19 +2,17 @@
 
 日志文件: ~/.agent-notify/agent-notify.log
 轮转策略: 5 个文件，每个最大 1MB
-崩溃日志: ~/.agent-notify/crash.log
+崩溃日志由 crash_reporter.py 统一处理。
 """
 
 import logging
 import sys
-import traceback
 from logging.handlers import RotatingFileHandler
 
 from constants import SIGNAL_DIR
 
 _LOG_DIR = SIGNAL_DIR
 _LOG_FILE = _LOG_DIR / "agent-notify.log"
-_CRASH_FILE = _LOG_DIR / "crash.log"
 _initialized = False
 
 
@@ -48,41 +46,6 @@ def _init() -> None:
     sh.setLevel(logging.WARNING)
     sh.setFormatter(fmt)
     root.addHandler(sh)
-
-    # 全局异常钩子 — 写入 crash.log
-    sys.excepthook = _crash_hook
-
-
-def _crash_hook(exc_type, exc_value, exc_tb):
-    """未处理异常 → 写入 crash.log + 原始 stderr。"""
-    _LOG_DIR.mkdir(parents=True, exist_ok=True)
-    tb = "".join(traceback.format_exception(exc_type, exc_value, exc_tb))
-    try:
-        with open(_CRASH_FILE, "a", encoding="utf-8") as f:
-            import datetime
-
-            f.write(f"\n{'=' * 60}\n")
-            f.write(f"Crash at {datetime.datetime.now().isoformat()}\n")
-            f.write(tb)
-    except OSError:
-        pass
-    # 仍然输出到 stderr
-    sys.stderr.write(tb)
-
-
-def check_crash_log() -> str | None:
-    """检查是否存在上次崩溃日志。有则返回内容摘要并删除文件，无则返回 None。"""
-    if not _CRASH_FILE.exists():
-        return None
-    try:
-        content = _CRASH_FILE.read_text(encoding="utf-8").strip()
-        _CRASH_FILE.unlink()
-        if content:
-            # 取最后 500 字符作为摘要
-            return content[-500:] if len(content) > 500 else content
-    except OSError:
-        pass
-    return None
 
 
 def get_logger(name: str) -> logging.Logger:

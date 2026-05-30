@@ -34,14 +34,10 @@ class AgentEvent:
     """
 
     agent_id: str
-    event_type: str  # EventType value
+    event_type: EventType
     message: str
     timestamp: float = field(default_factory=time.time)
     metadata: dict = field(default_factory=dict)
-
-    def __post_init__(self):
-        if isinstance(self.event_type, EventType):
-            self.event_type = self.event_type.value
 
     @property
     def is_waiting(self) -> bool:

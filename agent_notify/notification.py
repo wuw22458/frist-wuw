@@ -1,6 +1,7 @@
 """Windows Toast 通知 + 多媒体声音播放。
 
-Toast 通知通过 PowerShell 调用 Windows Runtime API。
+Toast 通知优先使用 winotify（直接调用 WinRT API），
+不可用时回退到 PowerShell 子进程。
 声音播放使用 PySide6 QMediaPlayer，支持 WAV / MP3 等格式。
 """
 
@@ -13,6 +14,13 @@ from PySide6.QtCore import QUrl
 from PySide6.QtMultimedia import QAudioOutput, QMediaPlayer
 
 logger = get_logger("notification")
+
+# 尝试导入 winotify（Windows 10+ 原生 toast，无需启动子进程）
+try:
+    from winotify import Notification as _WinNotification
+    _HAS_WINOTOAST = True
+except ImportError:
+    _HAS_WINOTOAST = False
 
 if getattr(sys, "frozen", False):
     _BASE_DIR = Path(sys._MEIPASS)
@@ -100,11 +108,28 @@ def play_sound(sound_path: str = "") -> None:
 def show_toast(title: str, message: str, source: str = "") -> None:
     """弹出 Windows 原生 toast 通知（非阻塞）。
 
+    优先使用 winotify（进程内调用 WinRT API），不可用时回退到 PowerShell。
+
     Args:
         title: 通知标题。
         message: 通知正文。
         source: 来源归属文字（可为空）。
     """
+    if _HAS_WINOTOAST:
+        try:
+            toast = _WinNotification(
+                app_id="Agent Notify",
+                title=title,
+                msg=message,
+                attribution=source if source else None,
+            )
+            toast.show()
+            logger.debug("Toast 通知已发送 (winotify): %s — %s", title, message[:60])
+            return
+        except Exception as e:
+            logger.warning("winotify 发送失败，回退 PowerShell: %s", e)
+
+    # PowerShell 回退方案
     source_line = (
         f"<text placement='attribution'>{_escape_xml(source)}</text>" if source else ""
     )
@@ -135,7 +160,7 @@ $toast = [Windows.UI.Notifications.ToastNotification]::new($xml)
             ["powershell", "-ExecutionPolicy", "Bypass", "-Command", ps_script],
             creationflags=subprocess.CREATE_NO_WINDOW,
         )
-        logger.debug("Toast 通知已发送: %s — %s", title, message[:60])
+        logger.debug("Toast 通知已发送 (PowerShell): %s — %s", title, message[:60])
     except FileNotFoundError:
         logger.error("PowerShell 不可用，无法发送 Toast 通知")
     except OSError as e:

@@ -45,6 +45,9 @@ def load_config() -> dict:
     if CONFIG_FILE.exists():
         try:
             raw = json.loads(CONFIG_FILE.read_text(encoding="utf-8"))
+            if not isinstance(raw, dict):
+                logger.error("配置文件内容不是字典，使用默认配置")
+                return dict(DEFAULT_CONFIG)
             validated = _validate_config(raw)
             return {**DEFAULT_CONFIG, **validated}
         except (json.JSONDecodeError, OSError) as e:
@@ -53,16 +56,20 @@ def load_config() -> dict:
 
 
 def save_config(config: dict) -> None:
-    """保存配置到 JSON 文件（自动创建目录）。
+    """原子保存配置到 JSON 文件（自动创建目录）。
+
+    先写入临时文件，再 rename 替换，防止断电或崩溃导致配置文件损坏。
 
     Args:
         config: 完整配置字典，将覆盖写入。
     """
     try:
         CONFIG_FILE.parent.mkdir(parents=True, exist_ok=True)
-        CONFIG_FILE.write_text(
+        tmp_file = CONFIG_FILE.with_suffix(".tmp")
+        tmp_file.write_text(
             json.dumps(config, ensure_ascii=False, indent=2), encoding="utf-8"
         )
+        tmp_file.replace(CONFIG_FILE)
         logger.debug("配置已保存: %s", CONFIG_FILE)
     except OSError as e:
         logger.error("配置文件写入失败: %s", e)
