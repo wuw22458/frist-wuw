@@ -1,0 +1,113 @@
+name: Build & Release
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    name: 测试
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt -r requirements-dev.txt
+        working-directory: agent_notify
+
+      - name: Run tests
+        run: pytest tests/ -v --tb=short
+        working-directory: agent_notify
+
+  build:
+    name: 构建 exe + 安装包
+    needs: test
+    runs-on: windows-latest
+    if: github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt -r requirements-dev.txt
+        working-directory: agent_notify
+
+      - name: Build exe with PyInstaller
+        run: pyinstaller agent_notify.spec --noconfirm
+        working-directory: agent_notify
+
+      - name: Verify exe exists
+        run: |
+          if (Test-Path "dist/AgentNotify.exe") { echo "✓ AgentNotify.exe built" } else { echo "✗ Build failed"; exit 1 }
+        working-directory: agent_notify
+
+      - name: Install Inno Setup
+        run: choco install innosetup -y
+
+      - name: Build installer
+        run: |
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer.iss
+        working-directory: agent_notify
+
+      - name: Verify installer
+        run: |
+          if (Test-Path "output/AgentNotifySetup.exe") { echo "✓ Installer built" } else { echo "✗ Installer failed"; exit 1 }
+        working-directory: agent_notify
+
+      - name: Upload exe artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AgentNotify-exe
+          path: agent_notify/dist/AgentNotify.exe
+
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AgentNotify-setup
+          path: agent_notify/output/AgentNotifySetup.exe
+
+  release:
+    name: 发布 Release
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download exe artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: AgentNotify-exe
+          path: release/
+
+      - name: Download installer artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: AgentNotify-setup
+          path: release/
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release/AgentNotify.exe
+            release/AgentNotifySetup.exe
+          generate_release_notes: true
+          draft: false
