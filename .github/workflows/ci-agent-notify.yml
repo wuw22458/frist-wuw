@@ -1,10 +1,16 @@
-name: CI
+name: Agent Notify CI
 
 on:
   push:
     branches: [main]
+    paths:
+      - "agent_notify/**"
+      - ".github/workflows/ci-agent-notify.yml"
   pull_request:
     branches: [main]
+    paths:
+      - "agent_notify/**"
+      - ".github/workflows/ci-agent-notify.yml"
 
 jobs:
   test:
@@ -27,17 +33,16 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install -r requirements-dev.txt
+        working-directory: agent_notify
 
       - name: Run tests (Linux)
         if: runner.os == 'Linux'
-        run: |
-          xvfb-run python -m pytest tests/ -v --tb=short
+        run: xvfb-run python -m pytest tests/ -v --tb=short
         working-directory: agent_notify
 
       - name: Run tests (Windows)
         if: runner.os == 'Windows'
-        run: |
-          python -m pytest tests/ -v --tb=short
+        run: python -m pytest tests/ -v --tb=short
         working-directory: agent_notify
 
   lint:
@@ -55,36 +60,6 @@ jobs:
 
       - name: Check syntax
         run: ruff check agent_notify/ --select E,F,I,UP,B,SIM --ignore E501
-        working-directory: .
 
       - name: Check formatting
         run: ruff format agent_notify/ --check --diff
-        working-directory: .
-
-  build:
-    runs-on: windows-latest
-    needs: [test, lint]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.14"
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install -r requirements-dev.txt
-
-      - name: Build exe
-        run: pyinstaller agent_notify.spec --noconfirm
-        working-directory: agent_notify
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: AgentNotify-${{ github.sha }}
-          path: agent_notify/dist/AgentNotify.exe

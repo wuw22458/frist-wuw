@@ -1,38 +1,83 @@
-# 虚拟环境
-venv/
-.venv/
-
-# 构建产物
-build/
-dist/
-*.spec
+# === Python ===
 __pycache__/
-*.pyc
+*.py[cod]
 *.pyo
 *.egg-info/
+*.egg
+*.whl
 
-# 管线输出（仅保留报告）
+# === 虚拟环境 ===
+venv/
+.venv/
+env/
+
+# === 构建产物 ===
+build/
+dist/
+output/
+*.spec
+*.exe
+*.msi
+*.msix
+*.appx
+
+# === PyInstaller ===
+*.manifest
+*.pkg
+
+# === 测试 & 覆盖率 ===
+.pytest_cache/
+.coverage
+htmlcov/
+.ruff_cache/
+
+# === IDE ===
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# === 系统文件 ===
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# === Node.js (doc_pipeline) ===
+node_modules/
+package-lock.json
+
+# === 临时文件 ===
+*.log
+*.tmp
+*.bak
+.uploads/
+
+# === Playwright MCP ===
+.playwright-mcp/
+
+# === Hermes / Claude 开发工具 ===
+.agents/
+.claude/
+CLAUDE.md
+skills-lock.json
+skills_zips/
+.mcp.json
+
+# === 个人/无关文件 ===
+SillyTavern/
+test-cli/
+opencli-extension/
+codexfocus_*
+Hello.c
+Hello.exe
+CONTEXT.md
+bilibili_bvids*
+bvids_*
+fetch_bilibili_*
+test_bilibili_*
+
+# === 管线输出（仅保留报告） ===
 doc_pipeline/output/manifest.json
 doc_pipeline/output/converted/
 doc_pipeline/output/pipeline.log
-
-# 大文件
-*.exe
-*.msi
-*.zip
-*.mp3
-*.mp4
-
-# 依赖
-node_modules/
-
-# IDE
-.vscode/
-.idea/
-
-# 个人文件
-E:/
-
-# Claude
-.claude/
-CLAUDE.md

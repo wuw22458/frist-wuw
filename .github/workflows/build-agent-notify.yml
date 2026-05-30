@@ -24,12 +24,12 @@ jobs:
           cache: pip
 
       - name: Install dependencies
-        run: |
-          pip install -r requirements.txt -r requirements-dev.txt
+        run: pip install -r requirements.txt -r requirements-dev.txt
+        working-directory: agent_notify
 
       - name: Run tests
-        run: |
-          pytest tests/ -v --tb=short
+        run: pytest tests/ -v --tb=short
+        working-directory: agent_notify
 
   build:
     name: 构建 exe + 安装包
@@ -46,16 +46,17 @@ jobs:
           cache: pip
 
       - name: Install dependencies
-        run: |
-          pip install -r requirements.txt -r requirements-dev.txt
+        run: pip install -r requirements.txt -r requirements-dev.txt
+        working-directory: agent_notify
 
       - name: Build exe with PyInstaller
-        run: |
-          pyinstaller agent_notify.spec --noconfirm
+        run: pyinstaller agent_notify.spec --noconfirm
+        working-directory: agent_notify
 
       - name: Verify exe exists
         run: |
           if (Test-Path "dist/AgentNotify.exe") { echo "✓ AgentNotify.exe built" } else { echo "✗ Build failed"; exit 1 }
+        working-directory: agent_notify
 
       - name: Install Inno Setup
         run: choco install innosetup -y
@@ -63,22 +64,24 @@ jobs:
       - name: Build installer
         run: |
           & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer.iss
+        working-directory: agent_notify
 
       - name: Verify installer
         run: |
           if (Test-Path "output/AgentNotifySetup.exe") { echo "✓ Installer built" } else { echo "✗ Installer failed"; exit 1 }
+        working-directory: agent_notify
 
       - name: Upload exe artifact
         uses: actions/upload-artifact@v4
         with:
           name: AgentNotify-exe
-          path: dist/AgentNotify.exe
+          path: agent_notify/dist/AgentNotify.exe
 
       - name: Upload installer artifact
         uses: actions/upload-artifact@v4
         with:
           name: AgentNotify-setup
-          path: output/AgentNotifySetup.exe
+          path: agent_notify/output/AgentNotifySetup.exe
 
   release:
     name: 发布 Release
