@@ -4,7 +4,6 @@ import builtins
 import json
 
 import pytest
-
 from adapters.custom import (
     _create_adapter_class,
     _load_custom_agents_json_fallback,

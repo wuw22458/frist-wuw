@@ -9,10 +9,9 @@ import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
 
-from PySide6.QtCore import QThread, Signal
-
 from constants import SIGNAL_DIR, __version__
 from log import get_logger
+from PySide6.QtCore import QThread, Signal
 
 logger = get_logger("updater")
 

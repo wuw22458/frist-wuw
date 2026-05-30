@@ -3,7 +3,6 @@
 from unittest.mock import patch
 
 import pytest
-
 from events import EventType
 
 

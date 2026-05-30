@@ -4,6 +4,8 @@ import json
 import time as _time
 from pathlib import Path
 
+from constants import HISTORY_FILE, __version__
+from events import AgentEvent, EventType
 from PySide6.QtCore import (
     QRegularExpression,
     QSettings,
@@ -27,10 +29,8 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
-
-from constants import HISTORY_FILE, __version__
-from events import AgentEvent, EventType
 from settings import load_config, save_config
+
 from ui.widgets import (
     _EVENT_TAGS,
     _GLASS_CARD_STYLE,

@@ -1,5 +1,7 @@
 """托盘图标 + 右键菜单 — TrayApp。"""
 
+from constants import __version__
+from events import AgentEvent
 from PySide6.QtCore import QTimer, Signal
 from PySide6.QtGui import QAction, QKeySequence, QShortcut
 from PySide6.QtWidgets import (
@@ -8,10 +10,9 @@ from PySide6.QtWidgets import (
     QSystemTrayIcon,
     QWidget,
 )
-
-from constants import __version__
-from events import AgentEvent
 from settings import load_config
+from updater import UpdateChecker, UpdateInfo, mark_checked, should_check
+
 from ui.settings import SettingsWindow
 from ui.widgets import (
     _EVENT_COLORS,
@@ -20,7 +21,6 @@ from ui.widgets import (
     T1,
     _make_icon,
 )
-from updater import UpdateChecker, UpdateInfo, mark_checked, should_check
 
 
 class TrayApp(QSystemTrayIcon):

@@ -11,6 +11,8 @@
 
 from __future__ import annotations
 
+from constants import APP_NAME, SIGNAL_DIR
+from log import get_logger
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import (
@@ -23,9 +25,6 @@ from PySide6.QtWidgets import (
     QWizard,
     QWizardPage,
 )
-
-from constants import APP_NAME, SIGNAL_DIR
-from log import get_logger
 from settings import load_config, save_config
 
 logger = get_logger("wizard")

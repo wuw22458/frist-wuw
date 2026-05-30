@@ -6,9 +6,8 @@
 
 from __future__ import annotations
 
-from PySide6.QtCore import QObject, Signal
-
 from events import AgentEvent
+from PySide6.QtCore import QObject, Signal
 
 
 class EventBus(QObject):

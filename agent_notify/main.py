@@ -12,10 +12,6 @@
 import argparse
 import sys
 
-from PySide6.QtCore import QCoreApplication
-from PySide6.QtGui import QColor, QPalette
-from PySide6.QtWidgets import QApplication
-
 from autostart import is_autostart_enabled, set_autostart
 from constants import __version__, migrate_from_old_path
 from crash_reporter import install_crash_handler
@@ -24,6 +20,9 @@ from hook_utils import install_hooks, uninstall_hooks
 from lock_utils import check_single_instance, cleanup_lock
 from log import get_logger
 from notification_engine import NotificationEngine
+from PySide6.QtCore import QCoreApplication
+from PySide6.QtGui import QColor, QPalette
+from PySide6.QtWidgets import QApplication
 from settings import load_config
 from ui.tray import TrayApp
 

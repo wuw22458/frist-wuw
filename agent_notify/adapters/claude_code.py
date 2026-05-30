@@ -8,9 +8,10 @@ from __future__ import annotations
 
 import shutil
 
+from events import EventType
+
 from adapters.registry import register_adapter
 from adapters.signal_file import SignalFileAdapter
-from events import EventType
 
 
 @register_adapter

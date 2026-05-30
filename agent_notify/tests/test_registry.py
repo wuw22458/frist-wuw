@@ -1,7 +1,6 @@
 """AdapterRegistry 注册表单元测试。"""
 
 import pytest
-
 from adapters.base import AgentAdapter
 from adapters.registry import AdapterRegistry, register_adapter
 

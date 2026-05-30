@@ -13,10 +13,9 @@ import ctypes
 import ctypes.wintypes
 from abc import ABC, abstractmethod
 
-from PySide6.QtCore import QTimer
-
 from event_bus import EventBus
 from events import AgentEvent, EventType
+from PySide6.QtCore import QTimer
 
 
 class AgentAdapter(ABC):

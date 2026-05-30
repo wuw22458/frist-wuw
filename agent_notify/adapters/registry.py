@@ -6,8 +6,9 @@
 
 from __future__ import annotations
 
-from adapters.base import AgentAdapter
 from event_bus import EventBus
+
+from adapters.base import AgentAdapter
 
 
 class AdapterRegistry:

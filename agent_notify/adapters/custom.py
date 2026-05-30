@@ -18,11 +18,12 @@ YAML 格式示例：
 
 from __future__ import annotations
 
-from adapters.registry import AdapterRegistry
-from adapters.signal_file import SignalFileAdapter
 from constants import SIGNAL_DIR
 from events import EventType
 from log import get_logger
+
+from adapters.registry import AdapterRegistry
+from adapters.signal_file import SignalFileAdapter
 
 logger = get_logger("adapters.custom")
 

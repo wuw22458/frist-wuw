@@ -8,10 +8,9 @@ import subprocess
 import sys
 from pathlib import Path
 
+from log import get_logger
 from PySide6.QtCore import QUrl
 from PySide6.QtMultimedia import QAudioOutput, QMediaPlayer
-
-from log import get_logger
 
 logger = get_logger("notification")
 

@@ -12,10 +12,11 @@ from __future__ import annotations
 import json
 from collections import OrderedDict
 
-from adapters.base import PollingAdapter
 from constants import SIGNAL_DIR
 from events import AgentEvent, EventType
 from log import get_logger
+
+from adapters.base import PollingAdapter
 
 logger = get_logger("signal_file")
 

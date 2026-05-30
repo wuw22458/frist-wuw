@@ -9,6 +9,7 @@
 
 import time as _time
 
+from events import EventType
 from PySide6.QtCore import (
     QEasingCurve,
     QPointF,
@@ -39,8 +40,6 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
-
-from events import EventType
 
 # ── 色板 ─────────────────────────────────────────────────
 BG = QColor(13, 17, 23)
