@@ -9,6 +9,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import json
 from collections import OrderedDict
 
@@ -73,7 +74,5 @@ class SignalFileAdapter(PollingAdapter):
                     e,
                     f,
                 )
-                try:
+                with contextlib.suppress(OSError):
                     f.unlink()
-                except OSError:
-                    pass

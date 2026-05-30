@@ -4,10 +4,7 @@
 """
 
 import sys
-from pathlib import Path
 from unittest.mock import patch
-
-import pytest
 
 
 class TestCrashReporter:
@@ -22,7 +19,11 @@ class TestCrashReporter:
     def test_write_and_read_crash_report(self, tmp_path):
         crash_file = tmp_path / "crash.log"
         with patch("crash_reporter.CRASH_LOG", crash_file):
-            from crash_reporter import has_crash_report, read_crash_report, write_crash_report
+            from crash_reporter import (
+                has_crash_report,
+                read_crash_report,
+                write_crash_report,
+            )
 
             # write_crash_report 需要真实的异常对象
             try:
