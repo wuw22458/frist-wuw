@@ -8,6 +8,7 @@
 2. 仅查询进程是否存在，权限最小化
 """
 
+import contextlib
 import ctypes
 import os
 
@@ -61,7 +62,5 @@ def check_single_instance() -> bool:
 
 def cleanup_lock() -> None:
     """删除锁文件（应用退出时调用，通过 aboutToQuit 信号触发）。"""
-    try:
+    with contextlib.suppress(OSError):
         LOCK_FILE.unlink(missing_ok=True)
-    except OSError:
-        pass

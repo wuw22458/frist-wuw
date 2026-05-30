@@ -67,11 +67,28 @@ class TestInstallHooks:
 
         config = {}
         config["hooks"] = {
-            "Notification": [{"type": "command", "command": f'"/usr/bin/python" "{hook_script}" --event notification'}],
-            "Stop": [{"type": "command", "command": f'"/usr/bin/python" "{hook_script}" --event stop'}],
-            "PreToolUse": [{"type": "command", "command": f'"/usr/bin/python" "{hook_script}" --event permission'}],
+            "Notification": [
+                {
+                    "type": "command",
+                    "command": f'"/usr/bin/python" "{hook_script}" --event notification',
+                }
+            ],
+            "Stop": [
+                {
+                    "type": "command",
+                    "command": f'"/usr/bin/python" "{hook_script}" --event stop',
+                }
+            ],
+            "PreToolUse": [
+                {
+                    "type": "command",
+                    "command": f'"/usr/bin/python" "{hook_script}" --event permission',
+                }
+            ],
         }
-        settings_file.write_text(json.dumps(config, ensure_ascii=False, indent=2), encoding="utf-8")
+        settings_file.write_text(
+            json.dumps(config, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
 
         result = json.loads(settings_file.read_text(encoding="utf-8"))
         assert "hooks" in result
@@ -103,6 +120,7 @@ class TestSetAutostart:
         mock_winreg.REG_SZ = 1
 
         from autostart import set_autostart
+
         set_autostart(True)
 
         mock_winreg.OpenKey.assert_called_once()
@@ -117,6 +135,7 @@ class TestSetAutostart:
         mock_winreg.KEY_SET_VALUE = 1
 
         from autostart import set_autostart
+
         set_autostart(False)
 
         mock_winreg.DeleteValue.assert_called_once()
@@ -130,6 +149,7 @@ class TestSetAutostart:
         mock_winreg.KEY_READ = 1
 
         from autostart import is_autostart_enabled
+
         assert is_autostart_enabled() is True
 
     @patch("autostart.winreg")
@@ -139,6 +159,7 @@ class TestSetAutostart:
         mock_winreg.KEY_READ = 1
 
         from autostart import is_autostart_enabled
+
         assert is_autostart_enabled() is False
 
 
@@ -146,15 +167,16 @@ class TestSetAutostart:
 
 
 class TestGetExePath:
-
     @patch("autostart.sys")
     def test_frozen_mode(self, mock_sys):
         mock_sys.frozen = True
         mock_sys.executable = r"C:\dist\AgentNotify.exe"
         from autostart import get_exe_path
+
         assert get_exe_path() == r"C:\dist\AgentNotify.exe"
 
     def test_dev_mode(self):
         from autostart import get_exe_path
+
         result = get_exe_path()
         assert result.endswith("main.py") or "main.py" in result

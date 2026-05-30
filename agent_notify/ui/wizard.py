@@ -137,7 +137,8 @@ class WelcomePage(QWizardPage):
             row.addStretch()
             status = QLabel("已检测到" if installed else "未安装")
             status.setStyleSheet(
-                "font-size: 11px; color: #4ecf6e;" if installed
+                "font-size: 11px; color: #4ecf6e;"
+                if installed
                 else "font-size: 11px; color: #606060;"
             )
             row.addWidget(status)
@@ -218,9 +219,7 @@ class HookConfigPage(QWizardPage):
         layout.setSpacing(14)
         layout.setContentsMargins(30, 24, 30, 20)
 
-        hint = QLabel(
-            "以下 Agent 支持深度集成，可以自动配置 Hook 实现实时通知。"
-        )
+        hint = QLabel("以下 Agent 支持深度集成，可以自动配置 Hook 实现实时通知。")
         hint.setStyleSheet(STYLE_SUBTITLE)
         hint.setWordWrap(True)
         layout.addWidget(hint)
@@ -259,8 +258,12 @@ class HookConfigPage(QWizardPage):
         layout.addWidget(self._claude_group)
 
         # 预留其他 Agent 集成的位置
-        self._other_label = QLabel("其他 Agent 无需额外配置，会自动通过信号文件接收通知。")
-        self._other_label.setStyleSheet("font-size: 12px; color: #707070; margin-top: 8px;")
+        self._other_label = QLabel(
+            "其他 Agent 无需额外配置，会自动通过信号文件接收通知。"
+        )
+        self._other_label.setStyleSheet(
+            "font-size: 12px; color: #707070; margin-top: 8px;"
+        )
         self._other_label.setWordWrap(True)
         layout.addWidget(self._other_label)
 
@@ -273,7 +276,9 @@ class HookConfigPage(QWizardPage):
         claude_selected = selected.get("claude-code", False)
         self._claude_group.setVisible(claude_selected)
         if not claude_selected:
-            self._other_label.setText("你选择的 Agent 无需额外配置，会自动通过信号文件接收通知。")
+            self._other_label.setText(
+                "你选择的 Agent 无需额外配置，会自动通过信号文件接收通知。"
+            )
         else:
             self._other_label.setText(
                 "其他 Agent 无需额外配置，会自动通过信号文件接收通知。"
@@ -367,7 +372,14 @@ class FinishPage(QWizardPage):
         super().__init__(parent)
         self.setTitle("")
 
-    def _setup_ui(self, selected: list[str], sound: bool, toast: bool, autostart: bool, hooks_configured: bool):
+    def _setup_ui(
+        self,
+        selected: list[str],
+        sound: bool,
+        toast: bool,
+        autostart: bool,
+        hooks_configured: bool,
+    ):
         layout = QVBoxLayout()
         layout.setSpacing(14)
         layout.setContentsMargins(30, 30, 30, 20)
@@ -496,6 +508,7 @@ class SetupWizard(QWizard):
 
         # 开机自启
         from autostart import set_autostart
+
         config["auto_start"] = self.autostart_enabled
         set_autostart(self.autostart_enabled)
 
@@ -506,6 +519,7 @@ class SetupWizard(QWizard):
         if self.configure_claude_hook:
             try:
                 from hook_utils import install_hooks
+
                 install_hooks()
                 logger.info("向导自动配置 Claude Code Hook 完成")
             except Exception as e:
@@ -513,8 +527,10 @@ class SetupWizard(QWizard):
 
         logger.info(
             "首次配置向导完成: agents=%s, sound=%s, toast=%s, autostart=%s",
-            self.selected_agents, self.notify_sound,
-            self.notify_toast, self.autostart_enabled,
+            self.selected_agents,
+            self.notify_sound,
+            self.notify_toast,
+            self.autostart_enabled,
         )
 
 

@@ -11,9 +11,11 @@ from events import EventType
 def cursor_adapter(qapp, signal_dir):
     """创建 CursorAdapter 实例（需要 QApplication）。"""
     from event_bus import get_bus, reset_bus
+
     reset_bus()
     bus = get_bus()
     from adapters.cursor import CursorAdapter
+
     adapter = CursorAdapter(bus, {"source_cursor": True})
     return adapter, bus
 
@@ -32,7 +34,10 @@ class TestCursorStateMachine:
         adapter, bus = cursor_adapter
         received = []
         bus.event_received.connect(lambda e: received.append(e))
-        with patch("adapters.base._enum_window_titles", return_value=["Cursor - needs attention"]):
+        with patch(
+            "adapters.base._enum_window_titles",
+            return_value=["Cursor - needs attention"],
+        ):
             adapter.check()
         assert len(received) == 1
         assert received[0].event_type == EventType.WAITING
@@ -42,7 +47,10 @@ class TestCursorStateMachine:
         adapter, bus = cursor_adapter
         received = []
         bus.event_received.connect(lambda e: received.append(e))
-        with patch("adapters.base._enum_window_titles", return_value=["Cursor - needs attention"]):
+        with patch(
+            "adapters.base._enum_window_titles",
+            return_value=["Cursor - needs attention"],
+        ):
             adapter.check()
             adapter.check()  # 第二次不应重复发射
         assert len(received) == 1
@@ -51,7 +59,10 @@ class TestCursorStateMachine:
         adapter, bus = cursor_adapter
         received = []
         bus.event_received.connect(lambda e: received.append(e))
-        with patch("adapters.base._enum_window_titles", return_value=["Cursor - needs attention"]):
+        with patch(
+            "adapters.base._enum_window_titles",
+            return_value=["Cursor - needs attention"],
+        ):
             adapter.check()
         with patch("adapters.base._enum_window_titles", return_value=[]):
             adapter.check()
@@ -61,6 +72,8 @@ class TestCursorStateMachine:
 
     def test_exception_silent(self, cursor_adapter):
         adapter, bus = cursor_adapter
-        with patch("adapters.base._enum_window_titles", side_effect=Exception("ctypes error")):
+        with patch(
+            "adapters.base._enum_window_titles", side_effect=Exception("ctypes error")
+        ):
             adapter.check()  # 不应抛异常
         assert adapter._waiting is False

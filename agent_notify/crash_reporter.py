@@ -61,10 +61,10 @@ def write_crash_report(exc_type, exc_value, exc_tb) -> str:
     report = f"""\
 {SEPARATOR}
 崩溃时间: {now}
-应用版本: {sys_info['app_version']}
-打包模式: {sys_info['frozen']}
-操作系统: {sys_info['os']}
-Python:    {sys_info['python']}
+应用版本: {sys_info["app_version"]}
+打包模式: {sys_info["frozen"]}
+操作系统: {sys_info["os"]}
+Python:    {sys_info["python"]}
 {SEPARATOR}
 
 Traceback:
@@ -86,7 +86,7 @@ Traceback:
         blocks = combined.split(SEPARATOR)
         # 保留最多 5 个完整报告块（包括分隔符）
         if len(blocks) > 5 * 2:  # 每个块有前后两个分隔符
-            blocks = blocks[:5 * 2]
+            blocks = blocks[: 5 * 2]
             combined = SEPARATOR.join(blocks) + SEPARATOR
         CRASH_LOG.write_text(combined, encoding="utf-8")
         return str(CRASH_LOG)
@@ -148,7 +148,9 @@ def install_crash_handler() -> None:
             if msg_type in (QtMsgType.QtCriticalMsg, QtMsgType.QtFatalMsg):
                 logger.error(
                     "Qt 错误 [%s]: %s (context: %s)",
-                    msg_type.name, message, context,
+                    msg_type.name,
+                    message,
+                    context,
                 )
                 # Qt Fatal 写入崩溃日志
                 if msg_type == QtMsgType.QtFatalMsg:

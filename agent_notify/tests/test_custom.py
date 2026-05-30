@@ -36,15 +36,17 @@ def _no_yaml(monkeypatch):
 
 class TestCreateAdapterClass:
     def test_full_definition(self):
-        cls = _create_adapter_class({
-            "agent_id": "my-agent",
-            "display_name": "My Agent",
-            "description": "test agent",
-            "glob_pattern": "my_*.json",
-            "event_map": {"go": "waiting", "done": "completed"},
-            "poll_interval_ms": 2000,
-            "exclude_names": ["skip.json"],
-        })
+        cls = _create_adapter_class(
+            {
+                "agent_id": "my-agent",
+                "display_name": "My Agent",
+                "description": "test agent",
+                "glob_pattern": "my_*.json",
+                "event_map": {"go": "waiting", "done": "completed"},
+                "poll_interval_ms": 2000,
+                "exclude_names": ["skip.json"],
+            }
+        )
         assert cls.agent_id == "my-agent"
         assert cls.display_name == "My Agent"
         assert cls.glob_pattern == "my_*.json"
@@ -61,10 +63,12 @@ class TestCreateAdapterClass:
         assert cls.poll_interval_ms == 1000
 
     def test_unknown_event_map_value_defaults_to_info(self):
-        cls = _create_adapter_class({
-            "agent_id": "unknown-events",
-            "event_map": {"weird_event": "nonexistent"},
-        })
+        cls = _create_adapter_class(
+            {
+                "agent_id": "unknown-events",
+                "event_map": {"weird_event": "nonexistent"},
+            }
+        )
         assert cls.event_map["weird_event"] == EventType.INFO
 
 
@@ -80,7 +84,9 @@ class TestLoadCustomAgentsJsonFallback:
                 {"agent_id": "custom2"},
             ]
         }
-        (signal_dir / "custom_agents.yaml").write_text(json.dumps(config), encoding="utf-8")
+        (signal_dir / "custom_agents.yaml").write_text(
+            json.dumps(config), encoding="utf-8"
+        )
         classes = _load_custom_agents_json_fallback()
         assert len(classes) == 2
         assert classes[0].agent_id == "custom1"
@@ -94,12 +100,16 @@ class TestLoadCustomAgentsJsonFallback:
                 {"display_name": "No ID"},
             ]
         }
-        (signal_dir / "custom_agents.yaml").write_text(json.dumps(config), encoding="utf-8")
+        (signal_dir / "custom_agents.yaml").write_text(
+            json.dumps(config), encoding="utf-8"
+        )
         classes = _load_custom_agents_json_fallback()
         assert len(classes) == 1
 
     def test_empty_agents_list(self, signal_dir):
-        (signal_dir / "custom_agents.yaml").write_text(json.dumps({"agents": []}), encoding="utf-8")
+        (signal_dir / "custom_agents.yaml").write_text(
+            json.dumps({"agents": []}), encoding="utf-8"
+        )
         assert _load_custom_agents_json_fallback() == []
 
 
@@ -107,7 +117,9 @@ class TestLoadCustomAgents:
     def test_yaml_unavailable_falls_back(self, signal_dir, monkeypatch):
         _no_yaml(monkeypatch)
         config = {"agents": [{"agent_id": "fb"}]}
-        (signal_dir / "custom_agents.yaml").write_text(json.dumps(config), encoding="utf-8")
+        (signal_dir / "custom_agents.yaml").write_text(
+            json.dumps(config), encoding="utf-8"
+        )
         classes = load_custom_agents()
         assert len(classes) == 1
         assert classes[0].agent_id == "fb"

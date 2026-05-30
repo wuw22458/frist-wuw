@@ -60,7 +60,8 @@ def _crash_hook(exc_type, exc_value, exc_tb):
     try:
         with open(_CRASH_FILE, "a", encoding="utf-8") as f:
             import datetime
-            f.write(f"\n{'='*60}\n")
+
+            f.write(f"\n{'=' * 60}\n")
             f.write(f"Crash at {datetime.datetime.now().isoformat()}\n")
             f.write(tb)
     except OSError:

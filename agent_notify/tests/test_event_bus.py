@@ -6,6 +6,7 @@ from events import AgentEvent, EventType
 class TestEventBus:
     def test_get_bus_singleton(self, qapp):
         from event_bus import get_bus, reset_bus
+
         reset_bus()
         bus1 = get_bus()
         bus2 = get_bus()
@@ -14,6 +15,7 @@ class TestEventBus:
 
     def test_reset_bus(self, qapp):
         from event_bus import get_bus, reset_bus
+
         reset_bus()
         bus1 = get_bus()
         reset_bus()
@@ -23,6 +25,7 @@ class TestEventBus:
 
     def test_event_received_signal(self, qapp):
         from event_bus import get_bus, reset_bus
+
         reset_bus()
         bus = get_bus()
         received = []

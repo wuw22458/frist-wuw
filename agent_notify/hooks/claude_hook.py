@@ -141,7 +141,11 @@ def main() -> None:
     输出空 JSON，不拦截 Claude Code 的后续操作。
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument("--event", required=True, choices=["notification", "stop", "tool_use", "permission"])
+    parser.add_argument(
+        "--event",
+        required=True,
+        choices=["notification", "stop", "tool_use", "permission"],
+    )
     args = parser.parse_args()
 
     logger.debug("hook 启动, event=%s, args=%s", args.event, sys.argv)
@@ -169,7 +173,11 @@ def main() -> None:
         # auto-approve 模式下这些工具会被自动批准，hook 无法区分。
         _INTERACTIVE_TOOLS = {"AskUserQuestion", "ExitToolMode"}
         if tool_name not in _INTERACTIVE_TOOLS:
-            logger.debug("跳过工具: %s (permission_mode=%s)", tool_name, stdin_context.get("permission_mode"))
+            logger.debug(
+                "跳过工具: %s (permission_mode=%s)",
+                tool_name,
+                stdin_context.get("permission_mode"),
+            )
             print("{}")
             return
         message = _extract_tool_message(stdin_context)

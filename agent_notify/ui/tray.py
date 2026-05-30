@@ -24,7 +24,6 @@ from updater import UpdateChecker, UpdateInfo, mark_checked, should_check
 
 
 class TrayApp(QSystemTrayIcon):
-
     pause_toggled = Signal(bool)
 
     def __init__(self, event_bus=None, parent=None):
@@ -40,7 +39,9 @@ class TrayApp(QSystemTrayIcon):
 
         # 全局快捷键（Ctrl+Shift+P 暂停/恢复）
         self._hotkey_host = QWidget(parent)  # 父对象管理生命周期
-        self._pause_shortcut = QShortcut(QKeySequence("Ctrl+Shift+P"), self._hotkey_host)
+        self._pause_shortcut = QShortcut(
+            QKeySequence("Ctrl+Shift+P"), self._hotkey_host
+        )
         self._pause_shortcut.activated.connect(self.toggle_pause_from_menu)
 
         # 注入 adapter 信息到 SettingsWindow（延迟到 main.py 中 adapters 创建后）
@@ -122,8 +123,7 @@ class TrayApp(QSystemTrayIcon):
         mark_checked()
         if info.available:
             self.setToolTip(
-                f"Agent Notify v{__version__}"
-                f" → 新版本 {info.latest_version} 可用"
+                f"Agent Notify v{__version__} → 新版本 {info.latest_version} 可用"
             )
             self._settings.set_update_info(info)
 
@@ -176,7 +176,8 @@ class TrayApp(QSystemTrayIcon):
             self.showMessage(
                 "Agent Notify",
                 f"发现新版本 {info.latest_version}，请在设置中下载更新",
-                0, 5000,
+                0,
+                5000,
             )
             self._settings.set_update_info(info)
         else:
@@ -187,7 +188,8 @@ class TrayApp(QSystemTrayIcon):
         self.showMessage(
             "关于 Agent Notify",
             f"v{__version__}\n统一的 AI Agent 通知中心\nhttps://github.com/wuw22458/agent_notify",
-            0, 5000,
+            0,
+            5000,
         )
 
     def toggle_pause_from_menu(self):

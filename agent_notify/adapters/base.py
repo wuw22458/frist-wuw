@@ -124,7 +124,9 @@ def _enum_window_titles(title_filter: str) -> list[str]:
                 titles.append(title)
         return True
 
-    WNDENUMPROC = ctypes.WINFUNCTYPE(ctypes.wintypes.BOOL, ctypes.wintypes.HWND, ctypes.wintypes.LPARAM)
+    WNDENUMPROC = ctypes.WINFUNCTYPE(
+        ctypes.wintypes.BOOL, ctypes.wintypes.HWND, ctypes.wintypes.LPARAM
+    )
     ctypes.windll.user32.EnumWindows(WNDENUMPROC(_enum_callback), 0)
     return titles
 
@@ -163,16 +165,20 @@ class WindowPollingAdapter(PollingAdapter):
 
         if has_attention and not self._waiting:
             self._waiting = True
-            self.emit(AgentEvent(
-                agent_id=self.agent_id,
-                event_type=EventType.WAITING,
-                message=self._attention_message,
-                metadata={"window_titles": titles},
-            ))
+            self.emit(
+                AgentEvent(
+                    agent_id=self.agent_id,
+                    event_type=EventType.WAITING,
+                    message=self._attention_message,
+                    metadata={"window_titles": titles},
+                )
+            )
         elif not has_attention and self._waiting:
             self._waiting = False
-            self.emit(AgentEvent(
-                agent_id=self.agent_id,
-                event_type=EventType.COMPLETED,
-                message=self._continue_message,
-            ))
+            self.emit(
+                AgentEvent(
+                    agent_id=self.agent_id,
+                    event_type=EventType.COMPLETED,
+                    message=self._continue_message,
+                )
+            )

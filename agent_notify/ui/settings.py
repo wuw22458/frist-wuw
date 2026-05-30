@@ -100,13 +100,17 @@ class SettingsWindow(QWidget):
         title_row.addWidget(icon_label)
 
         title = QLabel(f"Agent Notify v{__version__}")
-        title.setStyleSheet(f"color: {T1}; font-size: 18px; font-weight: 700; border: none;")
+        title.setStyleSheet(
+            f"color: {T1}; font-size: 18px; font-weight: 700; border: none;"
+        )
         title_row.addWidget(title)
         title_row.addStretch()
         root.addLayout(title_row)
 
         desc = QLabel("当 AI agent 需要确认或任务完成时通知你")
-        desc.setStyleSheet("color: rgba(255,255,255,0.50); font-size: 12px; border: none;")
+        desc.setStyleSheet(
+            "color: rgba(255,255,255,0.50); font-size: 12px; border: none;"
+        )
         desc.setWordWrap(True)
         root.addWidget(desc)
 
@@ -131,6 +135,7 @@ class SettingsWindow(QWidget):
 
         # 检测崩溃日志
         from crash_reporter import has_crash_report, read_crash_report
+
         if has_crash_report():
             crash_text = read_crash_report()
             summary = "上次运行异常退出"
@@ -203,6 +208,7 @@ class SettingsWindow(QWidget):
         autostart_row.setSpacing(20)
         self._autostart_sw = self._make_toggle("开机自启")
         from autostart import is_autostart_enabled
+
         self._autostart_sw.setChecked(is_autostart_enabled())
         self._autostart_sw.toggled.connect(self._on_autostart_toggled)
         self._autostart_sw.setToolTip("开机时自动启动 Agent Notify")
@@ -216,7 +222,9 @@ class SettingsWindow(QWidget):
 
         self._sound_icon = QLabel("♪")
         self._sound_icon.setFixedWidth(16)
-        self._sound_icon.setStyleSheet("color: rgba(255,255,255,0.35); font-size: 12px; border: none;")
+        self._sound_icon.setStyleSheet(
+            "color: rgba(255,255,255,0.35); font-size: 12px; border: none;"
+        )
 
         self._sound_label = QLabel(self._sound_display_path())
         self._sound_label.setStyleSheet(
@@ -473,12 +481,14 @@ class SettingsWindow(QWidget):
 
     def show_last_notification(self, event: AgentEvent):
         """从 AgentEvent 添加历史记录。"""
-        self._history.append({
-            "time": _time.strftime("%H:%M:%S"),
-            "event_type": event.event_type,
-            "message": event.message,
-            "agent_id": event.agent_id,
-        })
+        self._history.append(
+            {
+                "time": _time.strftime("%H:%M:%S"),
+                "event_type": event.event_type,
+                "message": event.message,
+                "agent_id": event.agent_id,
+            }
+        )
         max_history = self._config.get("max_history", 200)
         if len(self._history) > max_history:
             self._history = self._history[-max_history:]
@@ -516,12 +526,14 @@ class SettingsWindow(QWidget):
     def _dismiss_crash(self) -> None:
         """关闭崩溃横幅并清除崩溃报告。"""
         from crash_reporter import clear_crash_report
+
         clear_crash_report()
         self._crash_bar.hide()
 
     def _open_log_folder(self) -> None:
         """打开日志文件夹。"""
         from constants import SIGNAL_DIR
+
         QDesktopServices.openUrl(QUrl.fromLocalFile(str(SIGNAL_DIR)))
 
     def _refresh_history(self):
@@ -565,6 +577,7 @@ class SettingsWindow(QWidget):
             name = Path(custom).name
         else:
             from notification import _default_sound
+
             d = _default_sound()
             name = d.name if d else "—"
         return f"提示音: {name}"
@@ -574,6 +587,7 @@ class SettingsWindow(QWidget):
         if custom:
             return custom
         from notification import _default_sound
+
         d = _default_sound()
         return str(d) if d else ""
 
@@ -590,12 +604,15 @@ class SettingsWindow(QWidget):
 
     def _on_autostart_toggled(self, checked: bool):
         from autostart import set_autostart
+
         set_autostart(checked)
 
     def _pick_sound(self):
         path, _ = QFileDialog.getOpenFileName(
-            self, "选择提示音", "",
-            "音频文件 (*.wav *.mp3);;WAV 文件 (*.wav);;MP3 文件 (*.mp3);;所有文件 (*)"
+            self,
+            "选择提示音",
+            "",
+            "音频文件 (*.wav *.mp3);;WAV 文件 (*.wav);;MP3 文件 (*.mp3);;所有文件 (*)",
         )
         if path:
             self._config["custom_sound"] = path
@@ -615,6 +632,7 @@ class SettingsWindow(QWidget):
 
     def _preview_sound(self):
         from notification import play_sound
+
         play_sound(self._config.get("custom_sound", ""))
 
     def _send_test_notification(self):
@@ -627,8 +645,10 @@ class SettingsWindow(QWidget):
         self.show_last_notification(test_event)
         if self._toast_sw.isChecked():
             from notification import notify
+
             notify(
-                "Agent Notify 测试", test_msg,
+                "Agent Notify 测试",
+                test_msg,
                 sound=self._sound_sw.isChecked(),
                 source="test",
                 sound_path=self._config.get("custom_sound", ""),
@@ -690,6 +710,7 @@ class SettingsWindow(QWidget):
         end = self._dnd_end_input.text().strip()
         # 只保存合法的 HH:MM 格式
         import re
+
         if not re.fullmatch(r"(?:[01]\d|2[0-3]):[0-5]\d", start):
             start = "22:00"
             self._dnd_start_input.setText(start)

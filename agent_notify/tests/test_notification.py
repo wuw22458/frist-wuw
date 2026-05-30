@@ -13,39 +13,48 @@ class TestEscapeXml:
 
     def test_plain_text(self):
         from notification import _escape_xml
+
         assert _escape_xml("hello") == "hello"
 
     def test_ampersand(self):
         from notification import _escape_xml
+
         assert _escape_xml("a&b") == "a&amp;b"
 
     def test_less_than(self):
         from notification import _escape_xml
+
         assert _escape_xml("a<b") == "a&lt;b"
 
     def test_greater_than(self):
         from notification import _escape_xml
+
         assert _escape_xml("a>b") == "a&gt;b"
 
     def test_double_quote(self):
         from notification import _escape_xml
+
         assert _escape_xml('a"b') == "a&quot;b"
 
     def test_single_quote(self):
         from notification import _escape_xml
+
         assert _escape_xml("a'b") == "a&apos;b"
 
     def test_all_special_chars(self):
         from notification import _escape_xml
+
         result = _escape_xml("&<>\"'")
         assert result == "&amp;&lt;&gt;&quot;&apos;"
 
     def test_empty_string(self):
         from notification import _escape_xml
+
         assert _escape_xml("") == ""
 
     def test_xss_attempt(self):
         from notification import _escape_xml
+
         malicious = '<script>alert("xss")</script>'
         result = _escape_xml(malicious)
         assert "<" not in result.replace("&lt;", "")
@@ -54,6 +63,7 @@ class TestEscapeXml:
 
     def test_xml_injection_attempt(self):
         from notification import _escape_xml
+
         malicious = "test</text><text>injected"
         result = _escape_xml(malicious)
         assert "&lt;/text&gt;" in result
@@ -73,6 +83,7 @@ class TestDefaultSound:
 
         with patch("notification.RESOURCES_DIR", resources):
             from notification import _default_sound
+
             result = _default_sound()
             assert result is not None
             assert result.name == "notify.mp3"
@@ -84,6 +95,7 @@ class TestDefaultSound:
 
         with patch("notification.RESOURCES_DIR", resources):
             from notification import _default_sound
+
             result = _default_sound()
             assert result is not None
             assert result.name == "alert.wav"
@@ -95,11 +107,13 @@ class TestDefaultSound:
 
         with patch("notification.RESOURCES_DIR", resources):
             from notification import _default_sound
+
             assert _default_sound() is None
 
     def test_no_resources_dir(self, tmp_path):
         with patch("notification.RESOURCES_DIR", tmp_path / "nonexistent"):
             from notification import _default_sound
+
             assert _default_sound() is None
 
     def test_unsupported_formats_ignored(self, tmp_path):
@@ -110,6 +124,7 @@ class TestDefaultSound:
 
         with patch("notification.RESOURCES_DIR", resources):
             from notification import _default_sound
+
             assert _default_sound() is None
 
 
@@ -117,11 +132,13 @@ class TestDefaultSound:
 
 
 class TestPlaySound:
-
     def test_no_audio_file_skips(self, tmp_path):
-        with patch("notification._default_sound", return_value=None), \
-             patch("notification._get_player") as mock_player:
+        with (
+            patch("notification._default_sound", return_value=None),
+            patch("notification._get_player") as mock_player,
+        ):
             from notification import play_sound
+
             play_sound("")
             mock_player.assert_not_called()
 
@@ -132,6 +149,7 @@ class TestPlaySound:
         mock_player = MagicMock()
         with patch("notification._get_player", return_value=mock_player):
             from notification import play_sound
+
             play_sound(str(sound_file))
             mock_player.setSource.assert_called_once()
             mock_player.play.assert_called_once()
@@ -141,9 +159,12 @@ class TestPlaySound:
         default_sound.write_bytes(b"fake")
 
         mock_player = MagicMock()
-        with patch("notification._default_sound", return_value=default_sound), \
-             patch("notification._get_player", return_value=mock_player):
+        with (
+            patch("notification._default_sound", return_value=default_sound),
+            patch("notification._get_player", return_value=mock_player),
+        ):
             from notification import play_sound
+
             play_sound("/nonexistent/path.mp3")
             mock_player.play.assert_called_once()
 
@@ -152,10 +173,10 @@ class TestPlaySound:
 
 
 class TestShowToast:
-
     @patch("notification.subprocess.Popen")
     def test_calls_powershell(self, mock_popen):
         from notification import show_toast
+
         show_toast("Title", "Message", "source")
         mock_popen.assert_called_once()
         args = mock_popen.call_args
@@ -165,6 +186,7 @@ class TestShowToast:
     def test_powershell_not_found(self, mock_popen):
         mock_popen.side_effect = FileNotFoundError
         from notification import show_toast
+
         # 不应抛异常
         show_toast("Title", "Message")
 
@@ -172,4 +194,5 @@ class TestShowToast:
     def test_os_error_handled(self, mock_popen):
         mock_popen.side_effect = OSError("access denied")
         from notification import show_toast
+
         show_toast("Title", "Message")

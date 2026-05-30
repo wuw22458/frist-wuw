@@ -34,6 +34,7 @@ def _default_sound() -> Path | None:
                 return f
     return None
 
+
 # 全局播放器（复用避免重复创建）
 _player: QMediaPlayer | None = None
 _audio: QAudioOutput | None = None
@@ -42,17 +43,16 @@ _audio: QAudioOutput | None = None
 def _get_player() -> QMediaPlayer | None:
     """获取全局 QMediaPlayer 单例。错误状态自动重建。"""
     global _player, _audio
-    if _player is not None:
+    if _player is not None and _player.error() != QMediaPlayer.Error.NoError:
         # 检测错误状态，自动重建
-        if _player.error() != QMediaPlayer.Error.NoError:
-            logger.warning("QMediaPlayer 错误状态 (%s)，重建播放器", _player.error())
-            try:
-                _player.setSource(QUrl())
-                _player.deleteLater()
-            except Exception:
-                pass
-            _player = None
-            _audio = None
+        logger.warning("QMediaPlayer 错误状态 (%s)，重建播放器", _player.error())
+        try:
+            _player.setSource(QUrl())
+            _player.deleteLater()
+        except Exception:
+            pass
+        _player = None
+        _audio = None
     if _player is None:
         try:
             _player = QMediaPlayer()
@@ -106,8 +106,10 @@ def show_toast(title: str, message: str, source: str = "") -> None:
         message: 通知正文。
         source: 来源归属文字（可为空）。
     """
-    source_line = f"<text placement='attribution'>{_escape_xml(source)}</text>" if source else ""
-    ps_script = f'''
+    source_line = (
+        f"<text placement='attribution'>{_escape_xml(source)}</text>" if source else ""
+    )
+    ps_script = f"""
 [Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime] | Out-Null
 [Windows.Data.Xml.Dom.XmlDocument, Windows.Data.Xml.Dom.XmlDocument, ContentType = WindowsRuntime] | Out-Null
 
@@ -128,7 +130,7 @@ $xml = New-Object Windows.Data.Xml.Dom.XmlDocument
 $xml.LoadXml($template)
 $toast = [Windows.UI.Notifications.ToastNotification]::new($xml)
 [Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier("Agent Notify").Show($toast)
-'''
+"""
     try:
         subprocess.Popen(
             ["powershell", "-ExecutionPolicy", "Bypass", "-Command", ps_script],
@@ -152,7 +154,9 @@ def _escape_xml(text: str) -> str:
     )
 
 
-def notify(title: str, message: str, sound: bool = True, source: str = "", sound_path: str = "") -> None:
+def notify(
+    title: str, message: str, sound: bool = True, source: str = "", sound_path: str = ""
+) -> None:
     """发送通知（可选声音）。
 
     Args:
@@ -162,7 +166,9 @@ def notify(title: str, message: str, sound: bool = True, source: str = "", sound
         source: 来源归属文字。
         sound_path: 自定义音频文件路径。
     """
-    logger.info("通知: [%s] %s (sound=%s, source=%s)", title, message[:80], sound, source)
+    logger.info(
+        "通知: [%s] %s (sound=%s, source=%s)", title, message[:80], sound, source
+    )
     if sound:
         play_sound(sound_path)
     show_toast(title, message, source)

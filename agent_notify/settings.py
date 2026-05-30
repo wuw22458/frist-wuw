@@ -12,14 +12,23 @@ from log import get_logger
 logger = get_logger("settings")
 
 # 已知配置键（DEFAULT_CONFIG + adapter 动态键前缀）
-_KNOWN_PREFIXES = ("source_", "custom_sound", "sound_enabled", "toast_enabled",
-                   "auto_start", "max_history", "dnd_")
+_KNOWN_PREFIXES = (
+    "source_",
+    "custom_sound",
+    "sound_enabled",
+    "toast_enabled",
+    "auto_start",
+    "max_history",
+    "dnd_",
+)
 
 
 def _validate_config(config: dict) -> dict:
     """校验配置，对未知键记录警告但不移除。"""
     for key in config:
-        if key not in DEFAULT_CONFIG and not any(key.startswith(p) for p in _KNOWN_PREFIXES):
+        if key not in DEFAULT_CONFIG and not any(
+            key.startswith(p) for p in _KNOWN_PREFIXES
+        ):
             logger.debug("未知配置键: %s", key)
     return config
 
@@ -51,7 +60,9 @@ def save_config(config: dict) -> None:
     """
     try:
         CONFIG_FILE.parent.mkdir(parents=True, exist_ok=True)
-        CONFIG_FILE.write_text(json.dumps(config, ensure_ascii=False, indent=2), encoding="utf-8")
+        CONFIG_FILE.write_text(
+            json.dumps(config, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
         logger.debug("配置已保存: %s", CONFIG_FILE)
     except OSError as e:
         logger.error("配置文件写入失败: %s", e)

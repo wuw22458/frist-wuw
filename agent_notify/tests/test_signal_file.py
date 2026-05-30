@@ -11,6 +11,7 @@ from events import EventType
 def adapter(qapp, signal_dir):
     """创建一个测试用 SignalFileAdapter 子类实例。"""
     from event_bus import get_bus, reset_bus
+
     reset_bus()
     bus = get_bus()
 
@@ -42,9 +43,10 @@ class TestSignalFileCheck:
         inst, bus, sd = adapter
         received = []
         bus.event_received.connect(lambda e: received.append(e))
-        (sd / "signal.json").write_text(json.dumps({
-            "event": "waiting", "message": "please confirm"
-        }), encoding="utf-8")
+        (sd / "signal.json").write_text(
+            json.dumps({"event": "waiting", "message": "please confirm"}),
+            encoding="utf-8",
+        )
         inst.check()
         assert len(received) == 1
         assert received[0].event_type == EventType.WAITING
@@ -55,7 +57,9 @@ class TestSignalFileCheck:
         inst, bus, sd = adapter
         received = []
         bus.event_received.connect(lambda e: received.append(e))
-        (sd / "config.json").write_text(json.dumps({"event": "waiting"}), encoding="utf-8")
+        (sd / "config.json").write_text(
+            json.dumps({"event": "waiting"}), encoding="utf-8"
+        )
         inst.check()
         assert len(received) == 0
         assert (sd / "config.json").exists()  # 不删除
@@ -71,7 +75,9 @@ class TestSignalFileCheck:
         inst, bus, sd = adapter
         received = []
         bus.event_received.connect(lambda e: received.append(e))
-        (sd / "dup.json").write_text(json.dumps({"event": "done", "message": "ok"}), encoding="utf-8")
+        (sd / "dup.json").write_text(
+            json.dumps({"event": "done", "message": "ok"}), encoding="utf-8"
+        )
         inst.check()
         # 文件已删除，但再调一次 check 不应出错
         inst.check()
@@ -81,9 +87,9 @@ class TestSignalFileCheck:
         inst, bus, sd = adapter
         received = []
         bus.event_received.connect(lambda e: received.append(e))
-        (sd / "unknown.json").write_text(json.dumps({
-            "event": "something_weird", "message": "hmm"
-        }), encoding="utf-8")
+        (sd / "unknown.json").write_text(
+            json.dumps({"event": "something_weird", "message": "hmm"}), encoding="utf-8"
+        )
         inst.check()
         assert len(received) == 1
         assert received[0].event_type == EventType.INFO

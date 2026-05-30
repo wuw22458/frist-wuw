@@ -74,7 +74,8 @@ class NotificationEngine:
             title = title_map.get(event.event_type, "Agent Notify")
             if config.get("toast_enabled", True):
                 notify(
-                    title, event.message,
+                    title,
+                    event.message,
                     sound=config.get("sound_enabled", True),
                     source=event.agent_id,
                     sound_path=config.get("custom_sound", ""),

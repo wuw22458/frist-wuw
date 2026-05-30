@@ -32,10 +32,18 @@ logger = get_logger("main")
 
 def main() -> None:
     """入口函数 — 解析 CLI 参数后启动托盘应用或执行工具命令。"""
-    parser = argparse.ArgumentParser(description="Agent Notify — 通用 AI Agent 状态通知工具")
-    parser.add_argument("--version", action="version", version=f"Agent Notify {__version__}")
-    parser.add_argument("--install-hooks", action="store_true", help="自动配置 Claude Code hooks")
-    parser.add_argument("--uninstall-hooks", action="store_true", help="移除 Claude Code hooks 配置")
+    parser = argparse.ArgumentParser(
+        description="Agent Notify — 通用 AI Agent 状态通知工具"
+    )
+    parser.add_argument(
+        "--version", action="version", version=f"Agent Notify {__version__}"
+    )
+    parser.add_argument(
+        "--install-hooks", action="store_true", help="自动配置 Claude Code hooks"
+    )
+    parser.add_argument(
+        "--uninstall-hooks", action="store_true", help="移除 Claude Code hooks 配置"
+    )
     parser.add_argument("--auto-start", action="store_true", help="设置开机自启动")
     parser.add_argument("--no-auto-start", action="store_true", help="取消开机自启动")
     args = parser.parse_args()
@@ -104,6 +112,7 @@ def main() -> None:
 
     # ── 首次运行向导 ──
     from ui.wizard import SetupWizard, mark_wizard_completed, should_run_wizard
+
     if should_run_wizard(config):
         wizard = SetupWizard()
         wizard.exec()
@@ -129,6 +138,7 @@ def main() -> None:
                 except Exception:
                     config[key] = True
         from settings import save_config
+
         save_config(config)
         mark_wizard_completed()
         logger.info("[auto-detect] 已扫描已安装的 agent")
@@ -147,7 +157,9 @@ def main() -> None:
     tray.show()
 
     engine = NotificationEngine()
-    bus.event_received.connect(lambda event: engine.handle_event(event, tray.get_config()))
+    bus.event_received.connect(
+        lambda event: engine.handle_event(event, tray.get_config())
+    )
 
     def _on_pause(is_paused):
         engine.pause(is_paused)

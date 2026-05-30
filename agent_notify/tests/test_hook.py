@@ -27,9 +27,7 @@ class TestExtractToolMessage:
 
         ctx = {
             "tool_name": "AskUserQuestion",
-            "tool_input": {
-                "questions": [{"question": "选择下一步方向？"}]
-            },
+            "tool_input": {"questions": [{"question": "选择下一步方向？"}]},
         }
         msg = _extract_tool_message(ctx)
         assert "选择下一步方向" in msg
@@ -130,6 +128,7 @@ class TestWriteSignal:
         """信号文件应为合法 JSON，包含 event/message/timestamp/source 字段。"""
         with patch("hooks.claude_hook.SIGNAL_DIR", tmp_path):
             from hooks.claude_hook import write_signal
+
             write_signal("notification", "测试消息")
 
         files = list(tmp_path.glob("*.json"))
@@ -145,6 +144,7 @@ class TestWriteSignal:
         """文件名应为毫秒时间戳。"""
         with patch("hooks.claude_hook.SIGNAL_DIR", tmp_path):
             from hooks.claude_hook import write_signal
+
             before = int(time.time() * 1000)
             write_signal("stop", "完成")
             after = int(time.time() * 1000)
@@ -157,6 +157,7 @@ class TestWriteSignal:
         """应支持自定义 source 参数。"""
         with patch("hooks.claude_hook.SIGNAL_DIR", tmp_path):
             from hooks.claude_hook import write_signal
+
             write_signal("notification", "msg", source="custom-agent")
 
         files = list(tmp_path.glob("*.json"))
@@ -167,6 +168,7 @@ class TestWriteSignal:
         """应正确处理中文和 emoji。"""
         with patch("hooks.claude_hook.SIGNAL_DIR", tmp_path):
             from hooks.claude_hook import write_signal
+
             write_signal("notification", "需要确认: 你好世界 🚀")
 
         files = list(tmp_path.glob("*.json"))
@@ -180,7 +182,9 @@ class TestWriteSignal:
 class TestHookE2E:
     """通过 subprocess 调用 hook 脚本的端到端测试。"""
 
-    def _run_hook(self, event: str, stdin_data: dict = None, env_extra: dict = None) -> subprocess.CompletedProcess:
+    def _run_hook(
+        self, event: str, stdin_data: dict = None, env_extra: dict = None
+    ) -> subprocess.CompletedProcess:
         """运行 hook 脚本并返回结果。"""
         # 继承当前环境，确保 HOME/USERPROFILE 等关键变量可用
         env = os.environ.copy()
@@ -226,7 +230,10 @@ class TestHookE2E:
 
     def test_permission_event_ask_user_question(self):
         """AskUserQuestion 工具应产生信号文件（本身强制需要用户交互）。"""
-        stdin = {"tool_name": "AskUserQuestion", "tool_input": {"questions": [{"question": "选哪个？"}]}}
+        stdin = {
+            "tool_name": "AskUserQuestion",
+            "tool_input": {"questions": [{"question": "选哪个？"}]},
+        }
         result = self._run_hook("permission", stdin)
         assert result.returncode == 0, result.stderr.decode(errors="replace")
 
@@ -251,7 +258,10 @@ class TestHookE2E:
 
     def test_tool_use_event(self):
         """tool_use 事件应成功执行。"""
-        stdin = {"tool_name": "AskUserQuestion", "tool_input": {"questions": [{"question": "选哪个？"}]}}
+        stdin = {
+            "tool_name": "AskUserQuestion",
+            "tool_input": {"questions": [{"question": "选哪个？"}]},
+        }
         result = self._run_hook("tool_use", stdin)
         assert result.returncode == 0, result.stderr.decode(errors="replace")
 
@@ -262,7 +272,9 @@ class TestHookE2E:
 
     def test_notification_with_env_var(self):
         """应从 CLAUDE_NOTIFICATION 环境变量读取消息。"""
-        result = self._run_hook("notification", {}, env_extra={"CLAUDE_NOTIFICATION": "环境变量消息"})
+        result = self._run_hook(
+            "notification", {}, env_extra={"CLAUDE_NOTIFICATION": "环境变量消息"}
+        )
         assert result.returncode == 0, result.stderr.decode(errors="replace")
 
     def test_signal_file_written(self):

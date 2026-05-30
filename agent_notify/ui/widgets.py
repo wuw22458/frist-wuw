@@ -84,6 +84,7 @@ _EVENT_STATUS_PREFIX = {
 
 # ── Toggle 开关组件 ───────────────────────────────────────
 
+
 class ToggleSwitch(QWidget):
     """iOS 风格滑动开关，带平滑滑动动画和键盘焦点支持。"""
 
@@ -95,8 +96,14 @@ class ToggleSwitch(QWidget):
     _MARGIN = 2
     _GAP = 10
 
-    def __init__(self, text: str = "", parent=None, checked=False,
-                 on_color=ACCENT, off_color="#30363D"):
+    def __init__(
+        self,
+        text: str = "",
+        parent=None,
+        checked=False,
+        on_color=ACCENT,
+        off_color="#30363D",
+    ):
         super().__init__(parent)
         self._checked = checked
         self._text = text
@@ -189,6 +196,7 @@ class ToggleSwitch(QWidget):
 
 
 # ── 径向光晕组件 ─────────────────────────────────────────
+
 
 class GlowBackground(QWidget):
     """渐变背景 + 两个径向光晕椭圆。"""
@@ -315,6 +323,7 @@ class SectionCard(QFrame):
 
 # ── 状态指示器 ────────────────────────────────────────────
 
+
 class StatusIndicator(QWidget):
     """两行状态指示器：上行=圆点+状态+事件计数，下行=运行时长。"""
 
@@ -402,6 +411,7 @@ class StatusIndicator(QWidget):
 
 # ── 通用横幅组件 ──────────────────────────────────────────
 
+
 class BannerWidget(QFrame):
     """通用信息横幅，支持 info/warning/error 三种样式。"""
 
@@ -409,9 +419,9 @@ class BannerWidget(QFrame):
     action_clicked = Signal()
 
     _STYLES = {
-        "info":    ("#1A3A5C", "#58A6FF", "#58A6FF"),
+        "info": ("#1A3A5C", "#58A6FF", "#58A6FF"),
         "warning": ("#3D2E00", "#D29922", "#D29922"),
-        "error":   ("#3D1A1A", "#F85149", "#F85149"),
+        "error": ("#3D1A1A", "#F85149", "#F85149"),
     }
 
     def __init__(self, text="", action_text="", banner_type="info", parent=None):

@@ -16,6 +16,7 @@ class TestCheckCrashLog:
         crash_file = tmp_path / "crash.log"
         with patch("log._CRASH_FILE", crash_file):
             from log import check_crash_log
+
             assert check_crash_log() is None
 
     def test_returns_content_and_deletes(self, tmp_path):
@@ -24,6 +25,7 @@ class TestCheckCrashLog:
 
         with patch("log._CRASH_FILE", crash_file):
             from log import check_crash_log
+
             result = check_crash_log()
             assert result == "Traceback: test error"
             assert not crash_file.exists()
@@ -35,6 +37,7 @@ class TestCheckCrashLog:
 
         with patch("log._CRASH_FILE", crash_file):
             from log import check_crash_log
+
             result = check_crash_log()
             assert len(result) == 500
             assert result == "x" * 500
@@ -45,6 +48,7 @@ class TestCheckCrashLog:
 
         with patch("log._CRASH_FILE", crash_file):
             from log import check_crash_log
+
             result = check_crash_log()
             # 空文件 strip 后为空字符串，应返回 None
             assert result is None
@@ -55,6 +59,7 @@ class TestCheckCrashLog:
 
         with patch("log._CRASH_FILE", crash_file):
             from log import check_crash_log
+
             result = check_crash_log()
             assert result is None
 
@@ -62,9 +67,12 @@ class TestCheckCrashLog:
         crash_file = tmp_path / "crash.log"
         crash_file.write_text("error", encoding="utf-8")
 
-        with patch("log._CRASH_FILE", crash_file), \
-             patch.object(Path, "read_text", side_effect=OSError("permission denied")):
+        with (
+            patch("log._CRASH_FILE", crash_file),
+            patch.object(Path, "read_text", side_effect=OSError("permission denied")),
+        ):
             from log import check_crash_log
+
             result = check_crash_log()
             assert result is None
 
@@ -77,11 +85,13 @@ class TestGetLogger:
 
     def test_returns_logger_with_correct_name(self):
         from log import get_logger
+
         logger = get_logger("test_module")
         assert logger.name == "agent_notify.test_module"
 
     def test_returns_same_logger_on_repeat_call(self):
         from log import get_logger
+
         logger1 = get_logger("test_same")
         logger2 = get_logger("test_same")
         assert logger1 is logger2

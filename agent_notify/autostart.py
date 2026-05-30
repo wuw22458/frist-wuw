@@ -24,7 +24,9 @@ def set_autostart(enable: bool = True) -> None:
     """设置/取消开机自启动（通过 Windows 注册表 Run 键）。"""
     exe_path = get_exe_path()
     try:
-        key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, REGISTRY_KEY, 0, winreg.KEY_SET_VALUE)
+        key = winreg.OpenKey(
+            winreg.HKEY_CURRENT_USER, REGISTRY_KEY, 0, winreg.KEY_SET_VALUE
+        )
         if enable:
             cmd = f'"{exe_path}"'
             if not exe_path.endswith(".exe"):

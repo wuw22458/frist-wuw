@@ -23,7 +23,12 @@ class WindsurfAdapter(WindowPollingAdapter):
     @classmethod
     def detect(cls) -> bool:
         candidates = [
-            Path.home() / "AppData" / "Local" / "Programs" / "Windsurf" / "Windsurf.exe",
+            Path.home()
+            / "AppData"
+            / "Local"
+            / "Programs"
+            / "Windsurf"
+            / "Windsurf.exe",
             Path(r"C:\Program Files\Windsurf\Windsurf.exe"),
         ]
         if shutil.which("windsurf"):

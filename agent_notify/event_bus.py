@@ -21,8 +21,8 @@ class EventBus(QObject):
     """
 
     event_received = Signal(AgentEvent)
-    adapter_registered = Signal(str)   # agent_id
-    adapter_removed = Signal(str)      # agent_id
+    adapter_registered = Signal(str)  # agent_id
+    adapter_removed = Signal(str)  # agent_id
 
 
 # 模块级单例 — main.py 初始化后所有模块共享

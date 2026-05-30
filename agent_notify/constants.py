@@ -32,17 +32,18 @@ PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
 
 # ── 基础默认配置（adapter 无关的全局配置）──
 DEFAULT_CONFIG = {
-    "sound_enabled": True,      # 播放提示音
-    "toast_enabled": True,      # 显示系统通知
-    "auto_start": True,         # 开机自启动
-    "max_history": 200,         # 已处理信号记录上限
-    "custom_sound": "",         # 自定义提示音路径（为空使用默认）
-    "dnd_enabled": False,       # 免打扰模式
-    "dnd_start": "22:00",       # 免打扰开始时间
-    "dnd_end": "08:00",         # 免打扰结束时间
+    "sound_enabled": True,  # 播放提示音
+    "toast_enabled": True,  # 显示系统通知
+    "auto_start": True,  # 开机自启动
+    "max_history": 200,  # 已处理信号记录上限
+    "custom_sound": "",  # 自定义提示音路径（为空使用默认）
+    "dnd_enabled": False,  # 免打扰模式
+    "dnd_start": "22:00",  # 免打扰开始时间
+    "dnd_end": "08:00",  # 免打扰结束时间
 }
 
 # ── 迁移逻辑 ──
+
 
 def migrate_from_old_path() -> None:
     """首次启动时检测旧路径 ~/.claude/agent-notify/，自动迁移数据到新路径。"""

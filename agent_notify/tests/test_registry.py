@@ -18,16 +18,28 @@ class _DummyAdapter(AgentAdapter):
     agent_id = "dummy"
     display_name = "Dummy"
     description = "test"
-    def start(self): pass
-    def stop(self): pass
-    def is_running(self): return False
+
+    def start(self):
+        pass
+
+    def stop(self):
+        pass
+
+    def is_running(self):
+        return False
 
 
 class _NoIdAdapter(AgentAdapter):
     agent_id = ""
-    def start(self): pass
-    def stop(self): pass
-    def is_running(self): return False
+
+    def start(self):
+        pass
+
+    def stop(self):
+        pass
+
+    def is_running(self):
+        return False
 
 
 class TestAdapterRegistry:
@@ -57,6 +69,7 @@ class TestAdapterRegistry:
 
     def test_create_enabled(self, qapp):
         from event_bus import get_bus, reset_bus
+
         reset_bus()
         bus = get_bus()
         AdapterRegistry._register(_DummyAdapter)
@@ -67,6 +80,7 @@ class TestAdapterRegistry:
 
     def test_create_enabled_disabled(self, qapp):
         from event_bus import get_bus, reset_bus
+
         reset_bus()
         bus = get_bus()
         AdapterRegistry._register(_DummyAdapter)
@@ -80,7 +94,14 @@ class TestRegisterAdapterDecorator:
         @register_adapter
         class Decorated(AgentAdapter):
             agent_id = "decorated"
-            def start(self): pass
-            def stop(self): pass
-            def is_running(self): return False
+
+            def start(self):
+                pass
+
+            def stop(self):
+                pass
+
+            def is_running(self):
+                return False
+
         assert AdapterRegistry.get_class("decorated") is Decorated

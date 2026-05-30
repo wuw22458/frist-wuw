@@ -49,13 +49,26 @@ class SignalFileAdapter(PollingAdapter):
                 raw_event = data.get("event", "unknown")
                 message = data.get("message", "")
                 event_type = self.event_map.get(raw_event, EventType.INFO)
-                logger.debug("[%s] 收到信号: event=%s msg=%s", self.agent_id, raw_event, message[:60])
-                self.emit(AgentEvent(
-                    agent_id=self.agent_id,
-                    event_type=event_type,
-                    message=message,
-                    metadata={"raw_event": raw_event},
-                ))
+                logger.debug(
+                    "[%s] 收到信号: event=%s msg=%s",
+                    self.agent_id,
+                    raw_event,
+                    message[:60],
+                )
+                self.emit(
+                    AgentEvent(
+                        agent_id=self.agent_id,
+                        event_type=event_type,
+                        message=message,
+                        metadata={"raw_event": raw_event},
+                    )
+                )
                 f.unlink()
             except (json.JSONDecodeError, OSError) as e:
-                logger.warning("[%s] 信号文件解析失败 %s: %s | path=%s", self.agent_id, f.name, e, f)
+                logger.warning(
+                    "[%s] 信号文件解析失败 %s: %s | path=%s",
+                    self.agent_id,
+                    f.name,
+                    e,
+                    f,
+                )
