@@ -63,12 +63,12 @@ class TestSignalFileCheck:
         assert len(received) == 0
         assert (sd / "config.json").exists()  # 不删除
 
-    def test_invalid_json_file_preserved_for_debug(self, adapter):
-        """解析失败的信号文件保留不删除，便于排查问题。"""
+    def test_invalid_json_file_deleted(self, adapter):
+        """解析失败的信号文件删除，避免堆积。"""
         inst, bus, sd = adapter
         (sd / "bad.json").write_text("not json", encoding="utf-8")
         inst.check()
-        assert (sd / "bad.json").exists()
+        assert not (sd / "bad.json").exists()
 
     def test_processed_set_prevents_duplicate(self, adapter):
         inst, bus, sd = adapter

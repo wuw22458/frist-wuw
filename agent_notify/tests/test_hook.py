@@ -140,8 +140,8 @@ class TestWriteSignal:
         assert isinstance(data["timestamp"], int)
         assert data["source"] == "claude-code"
 
-    def test_filename_is_millisecond_timestamp(self, tmp_path):
-        """文件名应为毫秒时间戳。"""
+    def test_filename_is_millisecond_timestamp_with_uuid(self, tmp_path):
+        """文件名应为毫秒时间戳_8位UUID。"""
         with patch("hooks.claude_hook.SIGNAL_DIR", tmp_path):
             from hooks.claude_hook import write_signal
 
@@ -150,8 +150,13 @@ class TestWriteSignal:
             after = int(time.time() * 1000)
 
         files = list(tmp_path.glob("*.json"))
-        ts = int(files[0].stem)
+        stem = files[0].stem
+        # 格式: {timestamp}_{uuid_hex_8}
+        parts = stem.split("_")
+        assert len(parts) == 2
+        ts = int(parts[0])
         assert before <= ts <= after
+        assert len(parts[1]) == 8  # UUID hex 前 8 位
 
     def test_custom_source(self, tmp_path):
         """应支持自定义 source 参数。"""
