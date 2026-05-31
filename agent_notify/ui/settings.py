@@ -18,7 +18,16 @@ from ui.animation_controller import AnimationController
 from ui.history_manager import HistoryManager
 from ui.settings_presenter import SettingsPresenter
 from ui.settings_ui import SettingsUIBuilder
-from ui.widgets import _EVENT_TAGS, GREEN, ORANGE
+from ui.widgets import (
+    _EVENT_TAGS,
+    GREEN,
+    ORANGE,
+    btn_danger,
+    btn_ghost,
+    btn_primary,
+    btn_success,
+    filter_btn_style,
+)
 
 
 def _relative_time(ts: float) -> str:
@@ -46,7 +55,6 @@ class SettingsWindow(QWidget):
         self.setWindowFlags(Qt.Dialog | Qt.WindowCloseButtonHint | Qt.WindowMinimizeButtonHint)
         self.setAttribute(Qt.WA_StyledBackground, True)
 
-        # 初始化子模块
         from settings import load_config
         self._config = config if config is not None else load_config()
         self._ui = SettingsUIBuilder(self)
@@ -54,77 +62,52 @@ class SettingsWindow(QWidget):
         self._history = HistoryManager()
         self._anim = AnimationController(self)
 
-        # adapter 显示名映射
         self._adapter_display_names: dict[str, str] = {}
 
-        # 构建 UI
         self._ui.build()
         self._setup_connections()
         self._init_state()
 
-        # 注册动画卡片
         for card in self._ui.get_animatable_cards():
             self._anim.register_card(card)
         self._anim.setup_entrance()
 
     def _setup_connections(self) -> None:
-        """设置信号连接."""
         ui = self._ui
 
-        # Hero 卡片
         ui._pause_btn.clicked.connect(self.toggle_pause)
-
-        # 通知选项
         ui._sound_sw.toggled.connect(self._on_sound_toggled)
         ui._toast_sw.toggled.connect(self._save)
         ui._vol_slider.valueChanged.connect(self._on_volume_changed)
         ui._autostart_sw.toggled.connect(self._on_autostart_toggled)
 
-        # 提示音按钮
         ui._sound_btn.clicked.connect(self._pick_sound)
         ui._reset_btn.clicked.connect(self._reset_sound)
         ui._preview_btn.clicked.connect(self._preview_sound)
         ui._test_btn.clicked.connect(self._send_test_notification)
 
-        # 免打扰
         ui._dnd_sw.toggled.connect(self._on_dnd_toggled)
         ui._dnd_start_input.editingFinished.connect(self._save_dnd_times)
         ui._dnd_end_input.editingFinished.connect(self._save_dnd_times)
 
-        # 历史筛选
         for key, btn in ui._filter_btns.items():
             btn.clicked.connect(lambda checked, k=key: self._set_history_filter(k))
 
-        # 历史操作按钮（需要通过父布局找到）
-        self._connect_history_buttons()
+        # 历史操作按钮（直接引用，不再遍历子控件）
+        ui._clear_btn.clicked.connect(self._clear_history)
+        ui._log_btn.clicked.connect(self._presenter.open_log_folder)
+        ui._diag_btn.clicked.connect(self._run_diagnostics)
+        ui._help_btn.clicked.connect(self._presenter.open_troubleshooting)
 
-        # 横幅
-        ui._update_bar.action_clicked.connect(lambda: self._presenter.open_download(self._presenter._config.get('update_url', '')))
+        ui._update_bar.action_clicked.connect(
+            lambda: self._presenter.open_download(self._presenter._config.get('update_url', ''))
+        )
         ui._crash_bar.action_clicked.connect(self._dismiss_crash)
         ui._crash_bar.closed.connect(self._dismiss_crash)
 
-    def _connect_history_buttons(self) -> None:
-        """连接历史卡片的操作按钮."""
-        ui = self._ui
-        # 查找历史卡片中的按钮
-        history_card = ui._history_list.parent()
-        if history_card:
-            for btn in history_card.findChildren(__import__('PySide6.QtWidgets', fromlist=['QPushButton']).QPushButton):
-                text = btn.text()
-                if '清除' in text:
-                    btn.clicked.connect(self._clear_history)
-                elif '日志' in text:
-                    btn.clicked.connect(self._presenter.open_log_folder)
-                elif '诊断' in text:
-                    btn.clicked.connect(self._run_diagnostics)
-                elif '帮助' in text:
-                    btn.clicked.connect(self._presenter.open_troubleshooting)
-
     def _init_state(self) -> None:
-        """初始化控件状态."""
         ui = self._ui
 
-        # 配置值
         ui._sound_sw.setChecked(self._config.get('sound_enabled', True))
         ui._toast_sw.setChecked(self._config.get('toast_enabled', True))
         ui._vol_slider.setValue(self._config.get('sound_volume', 70))
@@ -137,39 +120,30 @@ class SettingsWindow(QWidget):
         ui._dnd_start_input.setText(self._config.get('dnd_start', '22:00'))
         ui._dnd_end_input.setText(self._config.get('dnd_end', '08:00'))
 
-        # 提示音路径
         ui._sound_label.setText(self._presenter.get_sound_display_path())
         ui._sound_label.setToolTip(self._presenter.get_sound_full_path())
         ui._reset_btn.setVisible(bool(self._config.get('custom_sound')))
 
-        # 音量容器可见性
         ui._vol_container.setVisible(ui._sound_sw.isChecked())
-
-        # 免打扰控件状态
         ui._dnd_start_input.setEnabled(ui._dnd_sw.isChecked())
         ui._dnd_end_input.setEnabled(ui._dnd_sw.isChecked())
 
-        # 时间校验器
         _time_re = QRegularExpression(r'^(?:[01]\d|2[0-3]):[0-5]\d$')
         _time_validator = QRegularExpressionValidator(_time_re)
         ui._dnd_start_input.setValidator(_time_validator)
         ui._dnd_end_input.setValidator(_time_validator)
 
-        # 历史记录
         self._refresh_history()
         self._update_stats()
 
-        # 运行时长定时器
         self._hero_start_time = _time.time()
         self._runtime_timer = QTimer(self)
         self._runtime_timer.timeout.connect(self._update_hero_runtime)
         self._runtime_timer.start(30000)
 
-        # 检测崩溃日志
         self._check_crash_report()
 
     def _check_crash_report(self) -> None:
-        """检测并显示崩溃报告."""
         from crash_reporter import has_crash_report, read_crash_report
 
         if has_crash_report():
@@ -192,6 +166,10 @@ class SettingsWindow(QWidget):
         """由 TrayApp 调用，注入 adapter 信息并动态创建 source switches."""
         self._adapter_display_names = {a.agent_id: a.display_name for a in adapters}
 
+        # 隐藏空状态提示
+        if self._ui._sources_empty_label:
+            self._ui._sources_empty_label.setVisible(False)
+
         # 清除旧的 source switches
         for sw in self._ui._source_switches.values():
             sw.setParent(None)
@@ -208,7 +186,7 @@ class SettingsWindow(QWidget):
             self._ui._source_switches[key] = sw
             self._ui._sources_card.add_widget(sw)
 
-    # ── 公开方法（对外接口保持不变）────────────────────────
+    # ── 公开方法 ──────────────────────────────────────────
 
     def set_status(self, text: str, color: QColor = None):
         self._ui._status.set_status(text, color)
@@ -224,7 +202,6 @@ class SettingsWindow(QWidget):
             self._ui._hero_summary.setText(f'已捕获 {count} 个事件')
 
     def show_last_notification(self, event: AgentEvent):
-        """从 AgentEvent 添加历史记录."""
         entry = self._presenter.handle_event(event)
         self._history.add(entry)
         self._refresh_history()
@@ -232,8 +209,9 @@ class SettingsWindow(QWidget):
         self._update_stats()
 
     def set_update_info(self, info) -> None:
-        """显示更新提示横幅。由 TrayApp 调用."""
-        self._ui._update_bar.set_text(f'新版本 {info.latest_version} 可用（当前 v{__import__("constants").__version__}）')
+        self._ui._update_bar.set_text(
+            f'新版本 {info.latest_version} 可用（当前 v{__import__("constants").__version__}）'
+        )
         self._presenter._config['update_url'] = info.download_url or info.html_url
         self._ui._update_bar.setVisible(True)
 
@@ -252,7 +230,6 @@ class SettingsWindow(QWidget):
         ui._empty_label.hide()
         ui._history_list.show()
 
-        # 更新筛选按钮计数
         self._update_filter_counts()
 
         for entry in reversed(filtered):
@@ -263,7 +240,6 @@ class SettingsWindow(QWidget):
             event_tag = _EVENT_TAGS.get(event_type, '信息')
             rel = _relative_time(entry.get('timestamp', 0))
 
-            # 增加来源标识
             source_prefix = f'[{source_display}] ' if source_display and source_display != '?' else ''
             text = f'{rel}  {source_prefix}[{event_tag}]  {entry["message"]}'
 
@@ -282,11 +258,9 @@ class SettingsWindow(QWidget):
             self._ui._stat_errors[1].setText(str(stats['errors']))
 
     def _update_filter_counts(self):
-        """更新筛选按钮的计数显示."""
         counts = self._history.get_filter_counts()
         ui = self._ui
 
-        # 按钮文本映射
         label_map = {
             'all': '全部',
             'waiting': '等待',
@@ -319,7 +293,7 @@ class SettingsWindow(QWidget):
         self._ui._history_filter = key
         for k, btn in self._ui._filter_btns.items():
             btn.setChecked(k == key)
-            btn.setStyleSheet(__import__('ui.settings_styles', fromlist=['filter_btn_style']).filter_btn_style(k == key))
+            btn.setStyleSheet(filter_btn_style(k == key))
         self._refresh_history()
 
     def _clear_history(self) -> None:
@@ -379,20 +353,18 @@ class SettingsWindow(QWidget):
 
         if success:
             self._ui._test_btn.setText('✓ 已发送')
-            self._ui._test_btn.setStyleSheet(__import__('ui.settings_styles', fromlist=['btn_success']).btn_success())
+            self._ui._test_btn.setStyleSheet(btn_success())
         else:
             self._ui._test_btn.setText('✗ 失败')
-            self._ui._test_btn.setStyleSheet(__import__('ui.settings_styles', fromlist=['btn_danger']).btn_danger())
+            self._ui._test_btn.setStyleSheet(btn_danger())
 
         QTimer.singleShot(2000, self._reset_test_btn)
 
     def _reset_test_btn(self):
         self._ui._test_btn.setText('测试通知')
-        self._ui._test_btn.setStyleSheet(__import__('ui.settings_styles', fromlist=['btn_ghost']).btn_ghost())
+        self._ui._test_btn.setStyleSheet(btn_ghost())
 
     def toggle_pause(self):
-        from ui.settings_styles import btn_danger, btn_primary
-
         is_paused = self._presenter.toggle_pause()
         if is_paused:
             self._ui._pause_btn.setText('继续')
