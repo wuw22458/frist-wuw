@@ -5,6 +5,9 @@ import time as _time
 from pathlib import Path
 
 from constants import HISTORY_FILE, __version__
+from log import get_logger
+
+logger = get_logger("settings")
 from events import AgentEvent, EventType
 from PySide6.QtCore import (
     QParallelAnimationGroup,
@@ -648,6 +651,21 @@ class SettingsWindow(QWidget):
             QPushButton:hover {{ background: rgba(248,81,73,0.30); }}
         """
 
+    def _btn_success(self) -> str:
+        return f"""
+            QPushButton {{
+                background: rgba(63,185,80,0.18);
+                color: #3fb950;
+                border: 1px solid rgba(63,185,80,0.35);
+                border-radius: 18px;
+                padding: 6px 20px;
+                font-size: 13px;
+                font-weight: 600;
+                font-family: {FONT};
+            }}
+            QPushButton:hover {{ background: rgba(63,185,80,0.30); }}
+        """
+
     # ── 公开方法 ──────────────────────────────────────────
 
     def set_status(self, text: str, color: QColor = None):
@@ -874,6 +892,7 @@ class SettingsWindow(QWidget):
         play_sound(self._config.get("custom_sound", ""), volume=vol)
 
     def _send_test_notification(self):
+        """发送测试通知并显示结果。"""
         test_msg = "这是一条测试通知，设置已生效"
         test_event = AgentEvent(
             agent_id="test",
@@ -881,16 +900,41 @@ class SettingsWindow(QWidget):
             message=test_msg,
         )
         self.show_last_notification(test_event)
-        if self._toast_sw.isChecked():
-            from notification import notify
 
-            notify(
-                "Agent Notify 测试",
-                test_msg,
-                sound=self._sound_sw.isChecked(),
-                source="test",
-                sound_path=self._config.get("custom_sound", ""),
-            )
+        success = True
+        error_msg = ""
+
+        if self._toast_sw.isChecked():
+            try:
+                from notification import notify
+
+                notify(
+                    "Agent Notify 测试",
+                    test_msg,
+                    sound=self._sound_sw.isChecked(),
+                    source="test",
+                    sound_path=self._config.get("custom_sound", ""),
+                )
+            except Exception as e:
+                success = False
+                error_msg = str(e)
+
+        # 显示测试结果
+        if success:
+            self._test_btn.setText("✓ 已发送")
+            self._test_btn.setStyleSheet(self._btn_success())
+        else:
+            self._test_btn.setText("✗ 失败")
+            self._test_btn.setStyleSheet(self._btn_danger())
+            logger.warning("测试通知发送失败: %s", error_msg)
+
+        # 2 秒后恢复按钮状态
+        QTimer.singleShot(2000, self._reset_test_btn)
+
+    def _reset_test_btn(self):
+        """重置测试通知按钮状态。"""
+        self._test_btn.setText("测试通知")
+        self._test_btn.setStyleSheet(self._btn_ghost())
 
     def toggle_pause(self):
         from ui.widgets import apply_pause_filter
