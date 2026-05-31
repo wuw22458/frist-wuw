@@ -12,17 +12,16 @@ from PySide6.QtWidgets import (
     QListWidget,
     QPushButton,
     QScrollArea,
-    QSlider,
     QVBoxLayout,
     QWidget,
 )
 
 from constants import __version__
-from ui.settings_styles import btn_danger, btn_ghost, btn_primary, filter_btn_style, input_style
 from ui.style import SCROLLBAR_STYLE
 from ui.widgets import (
-    ACCENT,
     MONO,
+    RADIUS_BTN,
+    RADIUS_MD,
     T1,
     T2,
     T3,
@@ -31,7 +30,13 @@ from ui.widgets import (
     SectionCard,
     StatusIndicator,
     ToggleSwitch,
+    VolumeSlider,
     _shadow,
+    btn_danger,
+    btn_ghost,
+    btn_primary,
+    filter_btn_style,
+    input_style,
 )
 
 
@@ -42,7 +47,7 @@ class SettingsUIBuilder:
         self._parent = parent
         self._animatable_cards: list[QWidget] = []
 
-        # UI 组件引用（供外部访问）
+        # UI 组件引用
         self._glow: GlowBackground = None
         self._scroll: QScrollArea = None
         self._update_bar: BannerWidget = None
@@ -58,9 +63,10 @@ class SettingsUIBuilder:
         self._stat_errors: tuple = None
         self._sources_card: SectionCard = None
         self._source_switches: dict[str, ToggleSwitch] = {}
+        self._sources_empty_label: QLabel = None
         self._sound_sw: ToggleSwitch = None
         self._toast_sw: ToggleSwitch = None
-        self._vol_slider: QSlider = None
+        self._vol_slider: VolumeSlider = None
         self._vol_value: QLabel = None
         self._vol_container: QWidget = None
         self._autostart_sw: ToggleSwitch = None
@@ -78,9 +84,14 @@ class SettingsUIBuilder:
         self._filter_btns: dict[str, QPushButton] = {}
         self._empty_label: QLabel = None
 
+        # 历史操作按钮引用
+        self._clear_btn: QPushButton = None
+        self._log_btn: QPushButton = None
+        self._diag_btn: QPushButton = None
+        self._help_btn: QPushButton = None
+
     def build(self) -> QVBoxLayout:
-        """构建完整的设置面板布局，返回根布局."""
-        # 根布局
+        """构建完整的设置面板布局."""
         self._glow = GlowBackground(self._parent)
         self._glow.setGeometry(0, 0, self._parent.width(), self._parent.height())
 
@@ -99,17 +110,16 @@ class SettingsUIBuilder:
         root.setContentsMargins(24, 20, 24, 20)
         root.setSpacing(16)
 
-        # 构建各个区域（最近通知提升到 Hero 下方）
+        # 构建各个区域
         self._build_title_area(root)
         self._build_banners(root)
         self._build_hero_card(root)
-        self._build_history_card(root)  # 提升到此处
+        self._build_history_card(root)
         self._build_stats_card(root)
         self._build_sources_card(root)
         self._build_notification_card(root)
         self._build_dnd_card(root)
 
-        # 包裹滚动区域
         scroll.setWidget(content)
         outer.addWidget(scroll)
 
@@ -141,13 +151,11 @@ class SettingsUIBuilder:
         root.addWidget(sep)
 
     def _build_banners(self, root: QVBoxLayout) -> None:
-        """构建更新和崩溃横幅."""
-        # 更新提示横幅（默认隐藏）
+        """构建横幅."""
         self._update_bar = BannerWidget('', action_text='下载更新', banner_type='info')
         self._update_bar.setVisible(False)
         root.addWidget(self._update_bar)
 
-        # 崩溃提示横幅（默认隐藏）
         self._crash_bar = BannerWidget('', action_text='清除', banner_type='error')
         self._crash_bar.setVisible(False)
         root.addWidget(self._crash_bar)
@@ -164,21 +172,19 @@ class SettingsUIBuilder:
             '    stop:0 rgba(30, 45, 65, 0.85),'
             '    stop:1 rgba(22, 27, 34, 0.95));'
             '  border: 1px solid rgba(255, 255, 255, 0.08);'
-            '  border-radius: 8px;'
+            f'  border-radius: {RADIUS_MD}px;'
             '}'
         )
         hero_layout = QHBoxLayout(hero_card)
         hero_layout.setContentsMargins(16, 0, 16, 0)
         hero_layout.setSpacing(14)
 
-        # 左侧大状态图标
         self._hero_icon = QLabel('●')
         self._hero_icon.setFixedSize(32, 32)
         self._hero_icon.setAlignment(Qt.AlignCenter)
         self._hero_icon.setStyleSheet('font-size: 24px; color: #3fb950; background: transparent; border: none;')
         hero_layout.addWidget(self._hero_icon)
 
-        # 中间状态文字列
         hero_text_col = QVBoxLayout()
         hero_text_col.setSpacing(2)
         self._hero_status_text = QLabel('正在监听')
@@ -191,7 +197,6 @@ class SettingsUIBuilder:
         hero_text_col.addWidget(self._hero_summary)
         hero_layout.addLayout(hero_text_col, 1)
 
-        # 右侧: 暂停按钮 + 运行时长
         hero_right_col = QVBoxLayout()
         hero_right_col.setSpacing(4)
         hero_right_col.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
@@ -215,7 +220,6 @@ class SettingsUIBuilder:
         self._animatable_cards.append(hero_card)
         root.addWidget(hero_card)
 
-        # StatusIndicator kept hidden for internal API compat
         self._status = StatusIndicator()
         self._status.hide()
 
@@ -241,6 +245,14 @@ class SettingsUIBuilder:
     def _build_sources_card(self, root: QVBoxLayout) -> None:
         """构建监控来源卡片."""
         self._sources_card = SectionCard('监控来源')
+
+        # 空状态提示（adapter 未注入时显示）
+        self._sources_empty_label = QLabel('启动后自动检测已安装的 Agent')
+        self._sources_empty_label.setStyleSheet(
+            f'color: {T3}; font-size: 12px; border: none; padding: 8px 0;'
+        )
+        self._sources_card.add_widget(self._sources_empty_label)
+
         root.addWidget(self._sources_card)
         self._animatable_cards.append(self._sources_card)
 
@@ -261,7 +273,7 @@ class SettingsUIBuilder:
 
         notif_card.add_layout(check_row)
 
-        # 音量滑块行
+        # 音量滑块行（使用自定义 VolumeSlider）
         vol_row = QHBoxLayout()
         vol_row.setSpacing(10)
         vol_label = QLabel('🔊')
@@ -269,36 +281,7 @@ class SettingsUIBuilder:
         vol_label.setStyleSheet(f'color: {T2}; font-size: 14px; border: none;')
         vol_row.addWidget(vol_label)
 
-        self._vol_slider = QSlider(Qt.Horizontal)
-        self._vol_slider.setRange(0, 100)
-        self._vol_slider.setFixedHeight(24)
-        self._vol_slider.setStyleSheet(f"""
-            QSlider::groove:horizontal {{
-                height: 6px;
-                background: rgba(255,255,255,0.1);
-                border-radius: 3px;
-            }}
-            QSlider::handle:horizontal {{
-                background: {ACCENT};
-                width: 18px;
-                height: 18px;
-                margin: -6px 0;
-                border-radius: 9px;
-                border: 2px solid rgba(255,255,255,0.2);
-            }}
-            QSlider::handle:horizontal:hover {{
-                background: #79bbff;
-                border-color: rgba(255,255,255,0.35);
-            }}
-            QSlider::sub-page:horizontal {{
-                background: {ACCENT};
-                border-radius: 3px;
-            }}
-            QSlider::add-page:horizontal {{
-                background: rgba(255,255,255,0.06);
-                border-radius: 3px;
-            }}
-        """)
+        self._vol_slider = VolumeSlider(value=70)
         vol_row.addWidget(self._vol_slider, 1)
 
         self._vol_value = QLabel('70%')
@@ -312,7 +295,7 @@ class SettingsUIBuilder:
         self._vol_container.setLayout(vol_row)
         notif_card.add_widget(self._vol_container)
 
-        # 开机自启开关
+        # 开机自启
         autostart_row = QHBoxLayout()
         autostart_row.setSpacing(20)
         self._autostart_sw = self._make_toggle('开机自启')
@@ -321,7 +304,7 @@ class SettingsUIBuilder:
         autostart_row.addStretch()
         notif_card.add_layout(autostart_row)
 
-        # 提示音路径行
+        # 提示音路径
         path_row = QHBoxLayout()
         path_row.setSpacing(6)
 
@@ -338,7 +321,7 @@ class SettingsUIBuilder:
         path_row.addStretch()
         notif_card.add_layout(path_row)
 
-        # 按钮行
+        # 按钮行（全部使用 btn_ghost，统一圆角）
         btn_row = QHBoxLayout()
         btn_row.setSpacing(8)
 
@@ -346,21 +329,18 @@ class SettingsUIBuilder:
         self._sound_btn.setFixedHeight(30)
         self._sound_btn.setCursor(Qt.PointingHandCursor)
         self._sound_btn.setStyleSheet(btn_ghost())
-        self._sound_btn.setToolTip('选择自定义提示音文件')
         btn_row.addWidget(self._sound_btn)
 
         self._reset_btn = QPushButton('恢复默认')
         self._reset_btn.setFixedHeight(30)
         self._reset_btn.setCursor(Qt.PointingHandCursor)
         self._reset_btn.setStyleSheet(btn_ghost())
-        self._reset_btn.setToolTip('恢复为内置默认提示音')
         btn_row.addWidget(self._reset_btn)
 
         self._preview_btn = QPushButton('试听')
         self._preview_btn.setFixedHeight(30)
         self._preview_btn.setCursor(Qt.PointingHandCursor)
         self._preview_btn.setStyleSheet(btn_ghost())
-        self._preview_btn.setToolTip('试听当前提示音')
         btn_row.addWidget(self._preview_btn)
 
         btn_row.addStretch()
@@ -369,7 +349,6 @@ class SettingsUIBuilder:
         self._test_btn.setFixedHeight(30)
         self._test_btn.setCursor(Qt.PointingHandCursor)
         self._test_btn.setStyleSheet(btn_ghost())
-        self._test_btn.setToolTip('立即发送一条测试通知')
         btn_row.addWidget(self._test_btn)
 
         notif_card.add_layout(btn_row)
@@ -418,31 +397,31 @@ class SettingsUIBuilder:
 
         self._history_list = QListWidget()
         self._history_list.setStyleSheet(
-            """
-            QListWidget {
+            f"""
+            QListWidget {{
                 background: rgba(0,0,0,0.20);
                 border: none;
-                border-radius: 8px;
+                border-radius: {RADIUS_MD}px;
                 padding: 4px;
-            }
-            QListWidget::item {
+            }}
+            QListWidget::item {{
                 color: rgba(255,255,255,0.65);
                 font-size: 11px;
                 padding: 5px 8px;
                 border-bottom: 1px solid rgba(255,255,255,0.05);
-                border-radius: 4px;
-            }
-            QListWidget::item:hover {
+                border-radius: {RADIUS_BTN}px;
+            }}
+            QListWidget::item:hover {{
                 background: rgba(255,255,255,0.08);
                 color: rgba(255,255,255,0.85);
-            }
-            QListWidget::item:selected {
+            }}
+            QListWidget::item:selected {{
                 background: rgba(88,166,255,0.15);
                 color: rgba(255,255,255,0.95);
-            }
-            QListWidget::item:last {
+            }}
+            QListWidget::item:last {{
                 border-bottom: none;
-            }
+            }}
         """
             + SCROLLBAR_STYLE
         )
@@ -453,7 +432,7 @@ class SettingsUIBuilder:
 
         history_card.add_widget(self._history_list)
 
-        # 筛选标签
+        # 筛选按钮（统一圆角）
         filter_row = QHBoxLayout()
         filter_row.setSpacing(6)
         for key, label in [
@@ -479,36 +458,37 @@ class SettingsUIBuilder:
         self._empty_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         history_card.add_widget(self._empty_label)
 
+        # 操作按钮（统一圆角，全部 btn_ghost/btn_danger）
         btn_row_hist = QHBoxLayout()
         btn_row_hist.setSpacing(8)
 
-        clear_btn = QPushButton('🗑 清除历史')
-        clear_btn.setFixedHeight(30)
-        clear_btn.setCursor(Qt.PointingHandCursor)
-        clear_btn.setStyleSheet(btn_danger())
-        clear_btn.setToolTip('清空所有通知记录')
-        btn_row_hist.addWidget(clear_btn)
+        self._clear_btn = QPushButton('🗑 清除历史')
+        self._clear_btn.setFixedHeight(30)
+        self._clear_btn.setCursor(Qt.PointingHandCursor)
+        self._clear_btn.setStyleSheet(btn_danger())
+        self._clear_btn.setToolTip('清空所有通知记录')
+        btn_row_hist.addWidget(self._clear_btn)
 
-        log_btn = QPushButton('📂 查看日志')
-        log_btn.setFixedHeight(30)
-        log_btn.setCursor(Qt.PointingHandCursor)
-        log_btn.setStyleSheet(btn_ghost())
-        log_btn.setToolTip('打开日志文件夹')
-        btn_row_hist.addWidget(log_btn)
+        self._log_btn = QPushButton('📂 查看日志')
+        self._log_btn.setFixedHeight(30)
+        self._log_btn.setCursor(Qt.PointingHandCursor)
+        self._log_btn.setStyleSheet(btn_ghost())
+        self._log_btn.setToolTip('打开日志文件夹')
+        btn_row_hist.addWidget(self._log_btn)
 
-        diag_btn = QPushButton('🔍 诊断')
-        diag_btn.setFixedHeight(30)
-        diag_btn.setCursor(Qt.PointingHandCursor)
-        diag_btn.setStyleSheet(btn_ghost())
-        diag_btn.setToolTip('检查配置是否正常')
-        btn_row_hist.addWidget(diag_btn)
+        self._diag_btn = QPushButton('🔍 诊断')
+        self._diag_btn.setFixedHeight(30)
+        self._diag_btn.setCursor(Qt.PointingHandCursor)
+        self._diag_btn.setStyleSheet(btn_ghost())
+        self._diag_btn.setToolTip('检查配置是否正常')
+        btn_row_hist.addWidget(self._diag_btn)
 
-        help_btn = QPushButton('❓ 帮助')
-        help_btn.setFixedHeight(30)
-        help_btn.setCursor(Qt.PointingHandCursor)
-        help_btn.setStyleSheet(btn_ghost())
-        help_btn.setToolTip('查看故障排除指南')
-        btn_row_hist.addWidget(help_btn)
+        self._help_btn = QPushButton('❓ 帮助')
+        self._help_btn.setFixedHeight(30)
+        self._help_btn.setCursor(Qt.PointingHandCursor)
+        self._help_btn.setStyleSheet(btn_ghost())
+        self._help_btn.setToolTip('查看故障排除指南')
+        btn_row_hist.addWidget(self._help_btn)
 
         btn_row_hist.addStretch()
         history_card.add_layout(btn_row_hist)
@@ -516,12 +496,12 @@ class SettingsUIBuilder:
         root.addWidget(history_card, stretch=1)
         self._animatable_cards.append(history_card)
 
+    # ── 辅助方法 ──────────────────────────────────────────
+
     def _make_toggle(self, text: str) -> ToggleSwitch:
-        """创建 ToggleSwitch 组件."""
         return ToggleSwitch(text, self._parent)
 
     def _make_stat_item(self, num: str, label: str) -> tuple:
-        """创建统计数字组件，返回 (widget, num_label)."""
         w = QWidget()
         w.setStyleSheet('background: transparent;')
         layout = QVBoxLayout(w)
@@ -541,16 +521,13 @@ class SettingsUIBuilder:
         return (w, num_lbl)
 
     def _make_label(self, text: str) -> QLabel:
-        """创建标签组件."""
         lbl = QLabel(text)
         lbl.setStyleSheet(f'color: {T2}; font-size: 12px; border: none;')
         return lbl
 
     def get_animatable_cards(self) -> list[QWidget]:
-        """返回所有需要入场动画的卡片."""
         return self._animatable_cards
 
     def sync_glow(self) -> None:
-        """同步光晕背景尺寸."""
         if self._glow:
             self._glow.setGeometry(0, 0, self._parent.width(), self._parent.height())

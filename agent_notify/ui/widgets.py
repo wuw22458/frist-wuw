@@ -3,7 +3,7 @@
 提供 SettingsWindow 和 TrayApp 共享的:
 - 色板常量(BG, ACCENT, T1 等)
 - 事件类型映射(_EVENT_COLORS, _EVENT_TAGS 等)
-- 自定义控件(ToggleSwitch, GlowBackground, SectionCard, StatusIndicator)
+- 自定义控件(ToggleSwitch, GlowBackground, SectionCard, StatusIndicator, VolumeSlider)
 - 辅助函数(_make_icon, _shadow)
 """
 
@@ -57,6 +57,12 @@ T3 = '#6e7681'
 FONT = '"Microsoft YaHei UI", "Segoe UI", sans-serif'
 MONO = '"Cascadia Code", "Consolas", monospace'
 
+# 统一圆角
+RADIUS_SM = 6
+RADIUS_MD = 10
+RADIUS_LG = 14
+RADIUS_BTN = 8  # 统一按钮圆角（非胶囊）
+
 # 事件类型 → 状态颜色
 _EVENT_COLORS = {
     EventType.WAITING: ORANGE,
@@ -80,6 +86,100 @@ _EVENT_STATUS_PREFIX = {
     EventType.ERROR: '出错',
     EventType.INFO: '通知',
 }
+
+
+# ── 统一按钮样式 ─────────────────────────────────────────
+
+def _btn_base(bg: str, color: str, border: str = 'none', radius: int = RADIUS_BTN) -> str:
+    """生成统一按钮样式基类."""
+    return f"""
+        QPushButton {{
+            background: {bg};
+            color: {color};
+            border: {border};
+            border-radius: {radius}px;
+            padding: 6px 16px;
+            font-size: 12px;
+            font-weight: 600;
+            font-family: {FONT};
+        }}
+        QPushButton:hover {{
+            opacity: 0.85;
+        }}
+        QPushButton:pressed {{
+            opacity: 0.7;
+        }}
+        QPushButton:disabled {{
+            background: rgba(255,255,255,0.04);
+            color: rgba(255,255,255,0.22);
+            border-color: rgba(255,255,255,0.06);
+        }}
+    """
+
+
+def btn_primary() -> str:
+    """主要按钮 — 实心蓝色."""
+    return _btn_base('#1e6ff0', 'white')
+
+
+def btn_ghost() -> str:
+    """幽灵按钮 — 半透明."""
+    return _btn_base(
+        'rgba(255,255,255,0.08)',
+        'rgba(255,255,255,0.75)',
+        '1px solid rgba(255,255,255,0.12)',
+    )
+
+
+def btn_danger() -> str:
+    """危险按钮 — 红色."""
+    return _btn_base(
+        'rgba(248,81,73,0.18)',
+        '#f85149',
+        '1px solid rgba(248,81,73,0.35)',
+    )
+
+
+def btn_success() -> str:
+    """成功按钮 — 绿色."""
+    return _btn_base(
+        'rgba(63,185,80,0.18)',
+        '#3fb950',
+        '1px solid rgba(63,185,80,0.35)',
+    )
+
+
+def input_style() -> str:
+    """输入框样式."""
+    return f"""
+        QLineEdit {{
+            background: rgba(0,0,0,0.25);
+            color: {T1};
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: {RADIUS_SM}px;
+            padding: 4px 8px;
+            font-size: 12px;
+            font-family: {MONO};
+        }}
+        QLineEdit:focus {{
+            border-color: {ACCENT.name()};
+        }}
+    """
+
+
+def filter_btn_style(active: bool) -> str:
+    """历史过滤按钮样式."""
+    if active:
+        return _btn_base(
+            'rgba(88,166,255,0.2)',
+            '#58a6ff',
+            '1px solid rgba(88,166,255,0.3)',
+        )
+    return _btn_base(
+        'transparent',
+        'rgba(255,255,255,0.5)',
+        '1px solid rgba(255,255,255,0.1)',
+    )
 
 
 # ── Toggle 开关组件 ───────────────────────────────────────
@@ -195,6 +295,115 @@ class ToggleSwitch(QWidget):
             self.setChecked(not self._checked)
 
 
+# ── 自定义音量滑块 ─────────────────────────────────────────
+
+
+class VolumeSlider(QWidget):
+    """自定义音量滑块，支持拖动和点击定位."""
+
+    valueChanged = Signal(int)
+
+    def __init__(self, parent=None, value=70):
+        super().__init__(parent)
+        self._value = value
+        self._minimum = 0
+        self._maximum = 100
+        self._dragging = False
+        self.setFixedHeight(28)
+        self.setMinimumWidth(120)
+        self.setCursor(Qt.PointingHandCursor)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+
+        self._groove_height = 6
+        self._handle_diameter = 16
+
+    def value(self) -> int:
+        return self._value
+
+    def setValue(self, val: int) -> None:
+        val = max(self._minimum, min(self._maximum, val))
+        if val != self._value:
+            self._value = val
+            self.valueChanged.emit(val)
+            self.update()
+
+    def _value_from_x(self, x: int) -> int:
+        """从 x 坐标计算对应的值."""
+        margin = self._handle_diameter // 2
+        groove_width = self.width() - 2 * margin
+        if groove_width <= 0:
+            return self._value
+        ratio = max(0.0, min(1.0, (x - margin) / groove_width))
+        return int(self._minimum + ratio * (self._maximum - self._minimum))
+
+    def _x_from_value(self) -> float:
+        """从值计算对应的 x 坐标."""
+        margin = self._handle_diameter // 2
+        groove_width = self.width() - 2 * margin
+        if self._maximum == self._minimum:
+            return margin
+        ratio = (self._value - self._minimum) / (self._maximum - self._minimum)
+        return margin + ratio * groove_width
+
+    def paintEvent(self, event):
+        p = QPainter(self)
+        p.setRenderHint(QPainter.Antialiasing)
+
+        h = self.height()
+        margin = self._handle_diameter // 2
+        groove_y = (h - self._groove_height) / 2
+        groove_width = self.width() - 2 * margin
+
+        # 背景轨道
+        groove_rect = QRectF(margin, groove_y, groove_width, self._groove_height)
+        p.setPen(Qt.NoPen)
+        p.setBrush(QColor(255, 255, 255, 25))  # rgba(255,255,255,0.1)
+        p.drawRoundedRect(groove_rect, self._groove_height / 2, self._groove_height / 2)
+
+        # 已填充部分
+        handle_x = self._x_from_value()
+        fill_rect = QRectF(margin, groove_y, handle_x - margin, self._groove_height)
+        p.setBrush(ACCENT)
+        p.drawRoundedRect(fill_rect, self._groove_height / 2, self._groove_height / 2)
+
+        # 拖动手柄
+        handle_y = (h - self._handle_diameter) / 2
+        handle_rect = QRectF(handle_x - self._handle_diameter / 2, handle_y, self._handle_diameter, self._handle_diameter)
+
+        # 手柄阴影
+        p.setBrush(QColor(0, 0, 0, 40))
+        p.drawEllipse(handle_rect.adjusted(-1, -1, 1, 1))
+
+        # 手柄主体
+        p.setBrush(QColor('#FFFFFF'))
+        p.setPen(QPen(QColor(255, 255, 255, 50), 1))
+        p.drawEllipse(handle_rect)
+
+        # 手柄内圆点（指示可拖动）
+        inner_rect = handle_rect.adjusted(4, 4, -4, -4)
+        p.setBrush(ACCENT)
+        p.setPen(Qt.NoPen)
+        p.drawEllipse(inner_rect)
+
+        p.end()
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            self._dragging = True
+            self.setValue(self._value_from_x(int(event.position().x())))
+
+    def mouseMoveEvent(self, event):
+        if self._dragging:
+            self.setValue(self._value_from_x(int(event.position().x())))
+
+    def mouseReleaseEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            self._dragging = False
+
+    def sizeHint(self):
+        return QSize(200, 28)
+
+
 # ── 径向光晕组件 ─────────────────────────────────────────
 
 
@@ -285,12 +494,6 @@ GLASS_BG = 'rgba(255, 255, 255, 0.06)'
 GLASS_BORDER = 'rgba(255, 255, 255, 0.08)'
 GLASS_HOVER = 'rgba(255, 255, 255, 0.10)'
 
-_GLASS_CARD_STYLE = f"""
-    background: {GLASS_BG};
-    border: 1px solid {GLASS_BORDER};
-    border-radius: 14px;
-"""
-
 
 class SectionCard(QFrame):
     """毛玻璃风格分组卡片."""
@@ -299,7 +502,9 @@ class SectionCard(QFrame):
         super().__init__(parent)
         self.setStyleSheet(f"""
             SectionCard {{
-                {_GLASS_CARD_STYLE}
+                background: {GLASS_BG};
+                border: 1px solid {GLASS_BORDER};
+                border-radius: {RADIUS_LG}px;
             }}
         """)
 
@@ -484,7 +689,7 @@ class BannerWidget(QFrame):
             QFrame {{
                 background: {bg};
                 border: 1px solid {border};
-                border-radius: 10px;
+                border-radius: {RADIUS_MD}px;
             }}
         """)
         layout = QHBoxLayout(self)
@@ -500,7 +705,7 @@ class BannerWidget(QFrame):
                     background: transparent;
                     color: {accent};
                     border: 1px solid {accent};
-                    border-radius: 6px;
+                    border-radius: {RADIUS_SM}px;
                     padding: 5px 14px;
                     font-size: 12px;
                     font-weight: 600;
