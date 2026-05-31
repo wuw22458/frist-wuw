@@ -16,12 +16,27 @@ from collections import OrderedDict
 from constants import SIGNAL_DIR
 from events import AgentEvent, EventType
 from log import get_logger
+from retry import retry
 
 from adapters.base import PollingAdapter
 
 logger = get_logger("signal_file")
 
 _MAX_PROCESSED = 500
+
+
+def _parse_signal_file(file_path) -> dict:
+    """解析信号文件（带重试机制）。"""
+    return json.loads(file_path.read_text(encoding="utf-8"))
+
+
+# 应用重试装饰器
+_parse_signal_file = retry(
+    max_attempts=3,
+    delay=0.1,
+    backoff=2.0,
+    exceptions=(json.JSONDecodeError, OSError),
+)(_parse_signal_file)
 
 
 class SignalFileAdapter(PollingAdapter):
@@ -47,7 +62,7 @@ class SignalFileAdapter(PollingAdapter):
             while len(self._processed) > _MAX_PROCESSED:
                 self._processed.popitem(last=False)
             try:
-                data = json.loads(f.read_text(encoding="utf-8"))
+                data = _parse_signal_file(f)
                 raw_event = data.get("event", "unknown")
                 message = data.get("message", "")
                 event_type = self.event_map.get(raw_event, EventType.INFO)

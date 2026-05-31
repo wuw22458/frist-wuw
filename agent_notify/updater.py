@@ -11,6 +11,7 @@ from pathlib import Path
 
 from constants import SIGNAL_DIR, __version__
 from log import get_logger
+from retry import retry
 from PySide6.QtCore import QThread, Signal
 
 logger = get_logger("updater")
@@ -55,6 +56,12 @@ def _parse_version(v: str) -> tuple[int, int, int]:
     return (parts[0], parts[1], parts[2])
 
 
+@retry(
+    max_attempts=3,
+    delay=2.0,
+    backoff=2.0,
+    exceptions=(urllib.error.URLError, OSError, json.JSONDecodeError),
+)
 def check_update() -> UpdateInfo:
     """同步检查是否有新版本（阻塞，应在后台线程调用）。"""
     try:
@@ -115,6 +122,12 @@ def mark_checked() -> None:
     _LAST_CHECK_FILE.write_text(str(time.time()))
 
 
+@retry(
+    max_attempts=3,
+    delay=5.0,
+    backoff=2.0,
+    exceptions=(urllib.error.URLError, OSError),
+)
 def download_and_replace(download_url: str) -> bool:
     """下载新版本并替换当前可执行文件。
 
