@@ -13,6 +13,7 @@ import ctypes
 import ctypes.wintypes
 from abc import ABC, abstractmethod
 
+from adaptive_polling import AdaptivePolling
 from event_bus import EventBus
 from events import AgentEvent, EventType
 from PySide6.QtCore import QTimer
@@ -79,20 +80,32 @@ class PollingAdapter(AgentAdapter):
     """基于 QTimer 轮询的 adapter 中间层。
 
     子类只需实现 check() 方法，timer 生命周期由本类管理。
+    支持自适应轮询：根据事件频率动态调整轮询间隔。
     """
 
     poll_interval_ms: int = 1000
+    use_adaptive_polling: bool = True
 
     def __init__(self, event_bus: EventBus, config: dict):
         super().__init__(event_bus, config)
         self._timer: QTimer | None = None
+        self._adaptive: AdaptivePolling | None = None
 
     def start(self) -> None:
         if self._running:
             return
         self._running = True
+
+        # 初始化自适应轮询
+        if self.use_adaptive_polling:
+            self._adaptive = AdaptivePolling(
+                min_interval=self.poll_interval_ms // 2,
+                max_interval=self.poll_interval_ms * 5,
+                base_interval=self.poll_interval_ms,
+            )
+
         self._timer = QTimer()
-        self._timer.timeout.connect(self.check)
+        self._timer.timeout.connect(self._on_timer)
         self._timer.start(self.poll_interval_ms)
 
     def stop(self) -> None:
@@ -103,6 +116,25 @@ class PollingAdapter(AgentAdapter):
 
     def is_running(self) -> bool:
         return self._running
+
+    def _on_timer(self) -> None:
+        """定时器回调，执行检查并更新轮询间隔。"""
+        if self._adaptive:
+            self._adaptive.record_check()
+
+        self.check()
+
+        # 更新轮询间隔
+        if self._adaptive and self._timer:
+            new_interval = self._adaptive.update_interval()
+            if new_interval != self._timer.interval():
+                self._timer.setInterval(new_interval)
+
+    def emit(self, event: AgentEvent) -> None:
+        """发射事件并记录（用于自适应轮询）。"""
+        if self._adaptive:
+            self._adaptive.record_event()
+        super().emit(event)
 
     @abstractmethod
     def check(self) -> None:
