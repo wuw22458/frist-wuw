@@ -1,0 +1,26 @@
+# 版本锁定文件 — 确保构建一致性
+#
+# 生成方法：
+#   pip install pip-tools
+#   pip-compile requirements.txt -o requirements-lock.txt
+#
+# 使用方法：
+#   pip install -r requirements-lock.txt
+#
+# 注意：此文件需要定期更新以获取安全补丁
+# 更新方法：
+#   pip-compile --upgrade requirements.txt -o requirements-lock.txt
+
+# 运行时依赖
+PySide6==6.11.1
+winotify==1.1.0
+
+# 间接依赖（PySide6 的子包）
+PySide6-Addons==6.11.1
+PySide6-Essentials==6.11.1
+shiboken6==6.11.1
+
+# 系统依赖
+pip==24.0
+setuptools==75.8.2
+wheel==0.45.1

@@ -3,3 +3,4 @@ pyinstaller-hooks-contrib>=2026
 pytest>=8.0
 pytest-mock>=3.14
 pyyaml>=6.0
+pip-tools>=7.0

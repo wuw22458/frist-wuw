@@ -157,8 +157,27 @@ agent_notify/
 ### 安装依赖
 
 ```bash
+# 生产环境（推荐使用锁定版本）
+pip install -r requirements-lock.txt
+
+# 或者使用宽松版本
 pip install -r requirements.txt
-pip install -r requirements-dev.txt  # 开发/测试依赖
+
+# 开发/测试依赖
+pip install -r requirements-dev.txt
+```
+
+### 更新依赖版本
+
+```bash
+# 安装 pip-tools
+pip install pip-tools
+
+# 更新锁定文件
+pip-compile requirements.txt -o requirements-lock.txt
+
+# 或者更新到最新版本
+pip-compile --upgrade requirements.txt -o requirements-lock.txt
 ```
 
 ### 运行测试
