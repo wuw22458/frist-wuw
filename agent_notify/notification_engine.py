@@ -11,6 +11,14 @@ from notification import notify
 
 logger = get_logger("engine")
 
+# 默认标题映射（可通过配置文件自定义）
+DEFAULT_TITLE_MAP = {
+    "waiting": "需要确认",
+    "completed": "任务完成",
+    "error": "出错了",
+    "info": "通知",
+}
+
 
 class NotificationEngine:
     """监听 EventBus 事件，根据配置发送 Toast + 声音通知。
@@ -20,6 +28,7 @@ class NotificationEngine:
     - 免打扰：在指定时段内静默
     - 暂停：外部控制暂停/恢复
     - 自动清理：防止内存泄漏
+    - 自定义标题：支持通过配置文件自定义通知标题
     """
 
     def __init__(self, throttle_sec: float = 3.0):
@@ -54,7 +63,7 @@ class NotificationEngine:
             now = time.monotonic()
             last = self._last_notif.get(dedup_key, 0)
             if now - last < self._throttle_sec:
-                logger.debug("节流抑制: %s (%.1fs)", dedup_key, now - last)
+                logger.debug("通知已发送，稍后再次提醒: %s (%.1fs)", dedup_key, now - last)
                 return
             self._last_notif[dedup_key] = now
 
@@ -65,12 +74,8 @@ class NotificationEngine:
                 for k in stale:
                     del self._last_notif[k]
 
-            title_map = {
-                "waiting": "需要确认",
-                "completed": "任务完成",
-                "error": "出错了",
-                "info": "通知",
-            }
+            # 从配置中获取标题映射，使用默认值作为回退
+            title_map = config.get("title_map", DEFAULT_TITLE_MAP)
             title = title_map.get(event.event_type, "Agent Notify")
             if config.get("toast_enabled", True):
                 notify(

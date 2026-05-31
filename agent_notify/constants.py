@@ -40,6 +40,12 @@ DEFAULT_CONFIG = {
     "dnd_enabled": False,  # 免打扰模式
     "dnd_start": "22:00",  # 免打扰开始时间
     "dnd_end": "08:00",  # 免打扰结束时间
+    "title_map": {  # 通知标题映射（可自定义）
+        "waiting": "需要确认",
+        "completed": "任务完成",
+        "error": "出错了",
+        "info": "通知",
+    },
 }
 
 # ── 迁移逻辑 ──

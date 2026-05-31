@@ -20,6 +20,7 @@ _KNOWN_PREFIXES = (
     "auto_start",
     "max_history",
     "dnd_",
+    "title_map",
 )
 
 
