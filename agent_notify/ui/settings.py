@@ -59,6 +59,14 @@ from ui.widgets import (
     _shadow,
 )
 from ui.style import SCROLLBAR_STYLE
+from ui.settings_styles import (
+    btn_primary,
+    btn_ghost,
+    btn_danger,
+    btn_success,
+    input_style,
+    filter_btn_style,
+)
 
 
 def _relative_time(ts: float) -> str:
@@ -233,7 +241,7 @@ class SettingsWindow(QWidget):
         self._pause_btn.setFixedSize(90, 32)
         self._pause_btn.setCursor(Qt.PointingHandCursor)
         self._pause_btn.clicked.connect(self.toggle_pause)
-        self._pause_btn.setStyleSheet(self._btn_primary())
+        self._pause_btn.setStyleSheet(btn_primary())
         _shadow(self._pause_btn)
         self._pause_btn.setToolTip("暂停或恢复监控")
         hero_right_col.addWidget(self._pause_btn)
@@ -402,7 +410,7 @@ class SettingsWindow(QWidget):
         self._sound_btn.setFixedHeight(30)
         self._sound_btn.setCursor(Qt.PointingHandCursor)
         self._sound_btn.clicked.connect(self._pick_sound)
-        self._sound_btn.setStyleSheet(self._btn_ghost())
+        self._sound_btn.setStyleSheet(btn_ghost())
         self._sound_btn.setToolTip("选择自定义提示音文件")
         btn_row.addWidget(self._sound_btn)
 
@@ -410,7 +418,7 @@ class SettingsWindow(QWidget):
         self._reset_btn.setFixedHeight(30)
         self._reset_btn.setCursor(Qt.PointingHandCursor)
         self._reset_btn.clicked.connect(self._reset_sound)
-        self._reset_btn.setStyleSheet(self._btn_ghost())
+        self._reset_btn.setStyleSheet(btn_ghost())
         self._reset_btn.setVisible(bool(self._config.get("custom_sound")))
         self._reset_btn.setToolTip("恢复为内置默认提示音")
         btn_row.addWidget(self._reset_btn)
@@ -419,7 +427,7 @@ class SettingsWindow(QWidget):
         self._preview_btn.setFixedHeight(30)
         self._preview_btn.setCursor(Qt.PointingHandCursor)
         self._preview_btn.clicked.connect(self._preview_sound)
-        self._preview_btn.setStyleSheet(self._btn_ghost())
+        self._preview_btn.setStyleSheet(btn_ghost())
         self._preview_btn.setToolTip("试听当前提示音")
         btn_row.addWidget(self._preview_btn)
 
@@ -429,7 +437,7 @@ class SettingsWindow(QWidget):
         self._test_btn.setFixedHeight(30)
         self._test_btn.setCursor(Qt.PointingHandCursor)
         self._test_btn.clicked.connect(self._send_test_notification)
-        self._test_btn.setStyleSheet(self._btn_ghost())
+        self._test_btn.setStyleSheet(btn_ghost())
         self._test_btn.setToolTip("立即发送一条测试通知")
         btn_row.addWidget(self._test_btn)
 
@@ -459,7 +467,7 @@ class SettingsWindow(QWidget):
         self._dnd_start_input.setFixedWidth(60)
         self._dnd_start_input.setMaxLength(5)
         self._dnd_start_input.setValidator(_time_validator)
-        self._dnd_start_input.setStyleSheet(self._input_style())
+        self._dnd_start_input.setStyleSheet(input_style())
         self._dnd_start_input.editingFinished.connect(self._save_dnd_times)
         self._dnd_start_input.setPlaceholderText("HH:MM")
         dnd_time_row.addWidget(self._dnd_start_input)
@@ -469,7 +477,7 @@ class SettingsWindow(QWidget):
         self._dnd_end_input.setFixedWidth(60)
         self._dnd_end_input.setMaxLength(5)
         self._dnd_end_input.setValidator(_time_validator)
-        self._dnd_end_input.setStyleSheet(self._input_style())
+        self._dnd_end_input.setStyleSheet(input_style())
         self._dnd_end_input.editingFinished.connect(self._save_dnd_times)
         self._dnd_end_input.setPlaceholderText("HH:MM")
         dnd_time_row.addWidget(self._dnd_end_input)
@@ -525,7 +533,7 @@ class SettingsWindow(QWidget):
             btn.setCursor(Qt.PointingHandCursor)
             btn.setFixedHeight(24)
             btn.clicked.connect(lambda checked, k=key: self._set_history_filter(k))
-            btn.setStyleSheet(self._filter_btn_style(key == "all"))
+            btn.setStyleSheet(filter_btn_style(key == "all"))
             self._filter_btns[key] = btn
             filter_row.addWidget(btn)
         filter_row.addStretch()
@@ -544,14 +552,14 @@ class SettingsWindow(QWidget):
         clear_btn = QPushButton("🗑 清除历史")
         clear_btn.setFixedHeight(30)
         clear_btn.setCursor(Qt.PointingHandCursor)
-        clear_btn.setStyleSheet(self._btn_danger())
+        clear_btn.setStyleSheet(btn_danger())
         clear_btn.setToolTip("清空所有通知记录")
         clear_btn.clicked.connect(self._clear_history)
         btn_row_hist.addWidget(clear_btn)
         log_btn = QPushButton("📂 查看日志")
         log_btn.setFixedHeight(30)
         log_btn.setCursor(Qt.PointingHandCursor)
-        log_btn.setStyleSheet(self._btn_ghost())
+        log_btn.setStyleSheet(btn_ghost())
         log_btn.setToolTip("打开日志文件夹")
         log_btn.clicked.connect(self._open_log_folder)
         btn_row_hist.addWidget(log_btn)
@@ -559,7 +567,7 @@ class SettingsWindow(QWidget):
         diag_btn = QPushButton("🔍 诊断")
         diag_btn.setFixedHeight(30)
         diag_btn.setCursor(Qt.PointingHandCursor)
-        diag_btn.setStyleSheet(self._btn_ghost())
+        diag_btn.setStyleSheet(btn_ghost())
         diag_btn.setToolTip("检查配置是否正常")
         diag_btn.clicked.connect(self._run_diagnostics)
         btn_row_hist.addWidget(diag_btn)
@@ -605,75 +613,6 @@ class SettingsWindow(QWidget):
 
     def _make_toggle(self, text: str) -> ToggleSwitch:
         return ToggleSwitch(text, self)
-
-    def _btn_primary(self) -> str:
-        return f"""
-            QPushButton {{
-                background: #1e6ff0;
-                color: white;
-                border: none;
-                border-radius: 18px;
-                padding: 6px 20px;
-                font-size: 13px;
-                font-weight: 600;
-                font-family: {FONT};
-            }}
-            QPushButton:hover {{ background: #3892ff; }}
-            QPushButton:pressed {{ background: #1a5fcc; }}
-        """
-
-    def _btn_ghost(self) -> str:
-        return f"""
-            QPushButton {{
-                background: rgba(255,255,255,0.08);
-                color: rgba(255,255,255,0.75);
-                border: 1px solid rgba(255,255,255,0.12);
-                border-radius: 15px;
-                padding: 5px 16px;
-                font-size: 12px;
-                font-family: {FONT};
-            }}
-            QPushButton:hover {{
-                background: rgba(255,255,255,0.14);
-                border-color: rgba(255,255,255,0.28);
-                color: white;
-            }}
-            QPushButton:disabled {{
-                background: rgba(255,255,255,0.04);
-                color: rgba(255,255,255,0.22);
-                border-color: rgba(255,255,255,0.06);
-            }}
-        """
-
-    def _btn_danger(self) -> str:
-        return f"""
-            QPushButton {{
-                background: rgba(248,81,73,0.18);
-                color: #f85149;
-                border: 1px solid rgba(248,81,73,0.35);
-                border-radius: 18px;
-                padding: 6px 20px;
-                font-size: 13px;
-                font-weight: 600;
-                font-family: {FONT};
-            }}
-            QPushButton:hover {{ background: rgba(248,81,73,0.30); }}
-        """
-
-    def _btn_success(self) -> str:
-        return f"""
-            QPushButton {{
-                background: rgba(63,185,80,0.18);
-                color: #3fb950;
-                border: 1px solid rgba(63,185,80,0.35);
-                border-radius: 18px;
-                padding: 6px 20px;
-                font-size: 13px;
-                font-weight: 600;
-                font-family: {FONT};
-            }}
-            QPushButton:hover {{ background: rgba(63,185,80,0.30); }}
-        """
 
     # ── 公开方法 ──────────────────────────────────────────
 
@@ -750,34 +689,8 @@ class SettingsWindow(QWidget):
         self._history_filter = key
         for k, btn in self._filter_btns.items():
             btn.setChecked(k == key)
-            btn.setStyleSheet(self._filter_btn_style(k == key))
+            btn.setStyleSheet(filter_btn_style(k == key))
         self._refresh_history()
-
-    @staticmethod
-    def _filter_btn_style(active: bool) -> str:
-        if active:
-            return """
-                QPushButton {
-                    background: rgba(88, 166, 255, 0.2);
-                    color: #58a6ff;
-                    border: 1px solid rgba(88, 166, 255, 0.3);
-                    border-radius: 12px;
-                    padding: 0 10px;
-                    font-size: 11px;
-                }
-            """
-        return """
-            QPushButton {
-                background: transparent;
-                color: rgba(255,255,255,0.5);
-                border: 1px solid rgba(255,255,255,0.1);
-                border-radius: 12px;
-                padding: 0 10px;
-                font-size: 11px;
-            }
-            QPushButton:hover {
-                border-color: rgba(255,255,255,0.2);
-            }
         """
 
     def _open_log_folder(self) -> None:
@@ -1012,10 +925,10 @@ class SettingsWindow(QWidget):
         # 显示测试结果
         if success:
             self._test_btn.setText("✓ 已发送")
-            self._test_btn.setStyleSheet(self._btn_success())
+            self._test_btn.setStyleSheet(btn_success())
         else:
             self._test_btn.setText("✗ 失败")
-            self._test_btn.setStyleSheet(self._btn_danger())
+            self._test_btn.setStyleSheet(btn_danger())
             logger.warning("测试通知发送失败: %s", error_msg)
 
         # 2 秒后恢复按钮状态
@@ -1024,7 +937,7 @@ class SettingsWindow(QWidget):
     def _reset_test_btn(self):
         """重置测试通知按钮状态。"""
         self._test_btn.setText("测试通知")
-        self._test_btn.setStyleSheet(self._btn_ghost())
+        self._test_btn.setStyleSheet(btn_ghost())
 
     def toggle_pause(self):
         from ui.widgets import apply_pause_filter
@@ -1032,12 +945,12 @@ class SettingsWindow(QWidget):
         self._is_paused = not self._is_paused
         if self._is_paused:
             self._pause_btn.setText("继续")
-            self._pause_btn.setStyleSheet(self._btn_danger())
+            self._pause_btn.setStyleSheet(btn_danger())
             self.set_status("已暂停", ORANGE)
             self._hero_summary.setText("监控已暂停，不会接收新通知")
         else:
             self._pause_btn.setText("暂停")
-            self._pause_btn.setStyleSheet(self._btn_primary())
+            self._pause_btn.setStyleSheet(btn_primary())
             self.set_status("监控中", GREEN)
             self._hero_summary.setText(self._last_notif_summary)
         apply_pause_filter(self._scroll, self._is_paused)
@@ -1093,22 +1006,6 @@ class SettingsWindow(QWidget):
         lbl = QLabel(text)
         lbl.setStyleSheet(f"color: {T2}; font-size: 12px; border: none;")
         return lbl
-
-    def _input_style(self) -> str:
-        return f"""
-            QLineEdit {{
-                background: rgba(0,0,0,0.25);
-                color: {T1};
-                border: 1px solid rgba(255,255,255,0.12);
-                border-radius: 6px;
-                padding: 4px 8px;
-                font-size: 12px;
-                font-family: {MONO};
-            }}
-            QLineEdit:focus {{
-                border-color: {ACCENT.name()};
-            }}
-        """
 
     def _on_dnd_toggled(self, checked: bool):
         self._config["dnd_enabled"] = checked
