@@ -205,6 +205,7 @@ pyinstaller agent_notify.spec --noconfirm
 - [CHANGELOG.md](CHANGELOG.md) — 版本变更记录
 - [CONTRIBUTING.md](CONTRIBUTING.md) — 贡献指南
 - [TECHNICAL.md](TECHNICAL.md) — 技术设计文档
+- [产品需求文档](docs/PRD.md) — 产品方向和功能规划
 - [故障排除指南](docs/troubleshooting.md) — 常见问题解答
 
 ## FAQ
