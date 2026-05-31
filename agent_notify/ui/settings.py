@@ -7,6 +7,8 @@ from pathlib import Path
 from constants import HISTORY_FILE, __version__
 from events import AgentEvent, EventType
 from PySide6.QtCore import (
+    QParallelAnimationGroup,
+    QPropertyAnimation,
     QRegularExpression,
     QSettings,
     QSize,
@@ -17,6 +19,7 @@ from PySide6.QtCore import (
 )
 from PySide6.QtGui import QColor, QDesktopServices, QRegularExpressionValidator
 from PySide6.QtWidgets import (
+    QGraphicsOpacityEffect,
     QFileDialog,
     QFrame,
     QHBoxLayout,
@@ -26,6 +29,7 @@ from PySide6.QtWidgets import (
     QListWidgetItem,
     QPushButton,
     QScrollArea,
+    QSlider,
     QVBoxLayout,
     QWidget,
 )
@@ -41,6 +45,7 @@ from ui.widgets import (
     ORANGE,
     T1,
     T2,
+    T3,
     BannerWidget,
     GlowBackground,
     SectionCard,
@@ -49,6 +54,21 @@ from ui.widgets import (
     _make_icon,
     _shadow,
 )
+from ui.style import SCROLLBAR_STYLE
+
+
+def _relative_time(ts: float) -> str:
+    """Convert timestamp to relative time string."""
+    import time as _t
+    diff = int(_t.time() - ts)
+    if diff < 60:
+        return "刚刚"
+    elif diff < 3600:
+        return f"{diff // 60} 分钟前"
+    elif diff < 86400:
+        return f"{diff // 3600} 小时前"
+    else:
+        return f"{diff // 86400} 天前"
 
 
 class SettingsWindow(QWidget):
@@ -69,6 +89,10 @@ class SettingsWindow(QWidget):
         self._config = config if config is not None else load_config()
         self._is_paused = False
         self._history: list[dict] = self._load_history()
+        self._animatable_cards: list[QWidget] = []
+        self._animations_played = False
+        self._hero_start_time = _time.time()
+        self._last_notif_summary = "等待来自 AI agent 的通知..."
 
         # adapter 显示名映射（由 TrayApp 通过 set_adapter_info 注入）
         self._adapter_display_names: dict[str, str] = {}
@@ -80,10 +104,14 @@ class SettingsWindow(QWidget):
         outer = QVBoxLayout(self)
         outer.setContentsMargins(0, 0, 0, 0)
 
-        scroll = QScrollArea()
+        self._scroll = QScrollArea()
+        scroll = self._scroll
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QFrame.NoFrame)
-        scroll.setStyleSheet("QScrollArea { background: transparent; border: none; }")
+        scroll.setStyleSheet(
+            "QScrollArea { background: transparent; border: none; }"
+            + SCROLLBAR_STYLE
+        )
 
         content = QWidget()
         content.setStyleSheet("background: transparent;")
@@ -147,41 +175,110 @@ class SettingsWindow(QWidget):
             self._crash_bar.set_text(f"{summary}，日志已记录到 crash.log")
             self._crash_bar.setVisible(True)
 
-        # ── 状态卡片 ──
-        status_card = QFrame()
-        status_card.setAttribute(Qt.WA_StyledBackground, True)
-        status_card.setStyleSheet(f"QFrame {{ {_GLASS_CARD_STYLE} }}")
-        status_layout = QVBoxLayout(status_card)
-        status_layout.setContentsMargins(14, 12, 14, 12)
-        status_layout.setSpacing(8)
+        # ── Hero Status 卡片 ──
+        hero_card = QFrame()
+        hero_card.setFixedHeight(80)
+        hero_card.setAttribute(Qt.WA_StyledBackground, True)
+        hero_card.setObjectName("hero-card")
+        hero_card.setStyleSheet(
+            "QFrame#hero-card {"
+            "  background: qlineargradient(x1:0, y1:0, x2:1, y2:1,"
+            "    stop:0 rgba(30, 45, 65, 0.85),"
+            "    stop:1 rgba(22, 27, 34, 0.95));"
+            "  border: 1px solid rgba(255, 255, 255, 0.08);"
+            "  border-radius: 8px;"
+            "}"
+        )
+        hero_layout = QHBoxLayout(hero_card)
+        hero_layout.setContentsMargins(16, 0, 16, 0)
+        hero_layout.setSpacing(14)
 
-        status_row = QHBoxLayout()
-        status_row.setSpacing(12)
-        self._status = StatusIndicator()
-        status_row.addWidget(self._status)
-        status_row.addStretch()
+        # 左侧大状态图标
+        self._hero_icon = QLabel("●")
+        self._hero_icon.setFixedSize(32, 32)
+        self._hero_icon.setAlignment(Qt.AlignCenter)
+        self._hero_icon.setStyleSheet(
+            "font-size: 24px; color: #3fb950;"
+            " background: transparent; border: none;"
+        )
+        hero_layout.addWidget(self._hero_icon)
+
+        # 中间状态文字列
+        hero_text_col = QVBoxLayout()
+        hero_text_col.setSpacing(2)
+        self._hero_status_text = QLabel("正在监听")
+        self._hero_status_text.setStyleSheet(
+            f"color: {T1}; font-size: 15px; font-weight: 700;"
+            " background: transparent; border: none;"
+        )
+        hero_text_col.addWidget(self._hero_status_text)
+        self._hero_summary = QLabel(self._last_notif_summary)
+        self._hero_summary.setStyleSheet(
+            f"color: {T3}; font-size: 11px;"
+            " background: transparent; border: none;"
+        )
+        hero_text_col.addWidget(self._hero_summary)
+        hero_layout.addLayout(hero_text_col, 1)
+
+        # 右侧: 暂停按钮 + 运行时长
+        hero_right_col = QVBoxLayout()
+        hero_right_col.setSpacing(4)
+        hero_right_col.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
 
         self._pause_btn = QPushButton("暂停")
-        self._pause_btn.setFixedSize(90, 36)
+        self._pause_btn.setFixedSize(90, 32)
         self._pause_btn.setCursor(Qt.PointingHandCursor)
         self._pause_btn.clicked.connect(self.toggle_pause)
         self._pause_btn.setStyleSheet(self._btn_primary())
         _shadow(self._pause_btn)
         self._pause_btn.setToolTip("暂停或恢复监控")
-        status_row.addWidget(self._pause_btn)
-        status_layout.addLayout(status_row)
+        hero_right_col.addWidget(self._pause_btn)
+
+        self._hero_runtime = QLabel("已运行 0 分钟")
+        self._hero_runtime.setStyleSheet(
+            f"color: {T3}; font-size: 10px; font-family: {MONO};"
+            " background: transparent; border: none;"
+        )
+        self._hero_runtime.setAlignment(Qt.AlignRight)
+        hero_right_col.addWidget(self._hero_runtime)
+
+        hero_layout.addLayout(hero_right_col)
+        self._animatable_cards.append(hero_card)
+        root.addWidget(hero_card)
+
+        # StatusIndicator kept hidden for internal API compat
+        self._status = StatusIndicator()
+        self._status.hide()
 
         self._runtime_timer = QTimer(self)
-        self._runtime_timer.timeout.connect(self._status.update_runtime)
+        self._runtime_timer.timeout.connect(self._update_hero_runtime)
         self._runtime_timer.start(30000)
 
-        root.addWidget(status_card)
+        # ── 今日概览卡片 ──
+        stats_card = SectionCard("今日概览")
+        stats_inner = QHBoxLayout()
+        stats_inner.setSpacing(24)
+
+        self._stat_today = self._make_stat_item("0", "条通知")
+        stats_inner.addWidget(self._stat_today[0])
+
+        self._stat_waiting = self._make_stat_item("0", "等待中")
+        stats_inner.addWidget(self._stat_waiting[0])
+
+        self._stat_errors = self._make_stat_item("0", "错误")
+        stats_inner.addWidget(self._stat_errors[0])
+
+        stats_card.add_layout(stats_inner)
+        root.addWidget(stats_card)
+        self._animatable_cards.append(stats_card)
+        self._stats_card = stats_card
 
         # ── 监控来源卡片（动态生成，由 adapter 注册表驱动）──
         self._sources_card = SectionCard("监控来源")
         self._source_switches: dict[str, ToggleSwitch] = {}
         # source switches 会在 set_adapter_info 中动态创建
         root.addWidget(self._sources_card)
+        self._animatable_cards.append(self._sources_card)
 
         # ── 通知选项卡片 ──
         notif_card = SectionCard("通知")
@@ -202,6 +299,62 @@ class SettingsWindow(QWidget):
         check_row.addWidget(self._toast_sw)
 
         notif_card.add_layout(check_row)
+
+        # 音量滑块行
+        vol_row = QHBoxLayout()
+        vol_row.setSpacing(10)
+        vol_label = QLabel("🔊")
+        vol_label.setFixedWidth(20)
+        vol_label.setStyleSheet(f"color: {T2}; font-size: 14px; border: none;")
+        vol_row.addWidget(vol_label)
+
+        self._vol_slider = QSlider(Qt.Horizontal)
+        self._vol_slider.setRange(0, 100)
+        self._vol_slider.setValue(self._config.get("sound_volume", 70))
+        self._vol_slider.setFixedHeight(24)
+        self._vol_slider.setStyleSheet(f"""
+            QSlider::groove:horizontal {{
+                height: 6px;
+                background: rgba(255,255,255,0.1);
+                border-radius: 3px;
+            }}
+            QSlider::handle:horizontal {{
+                background: {ACCENT};
+                width: 18px;
+                height: 18px;
+                margin: -6px 0;
+                border-radius: 9px;
+                border: 2px solid rgba(255,255,255,0.2);
+            }}
+            QSlider::handle:horizontal:hover {{
+                background: #79bbff;
+                border-color: rgba(255,255,255,0.35);
+            }}
+            QSlider::sub-page:horizontal {{
+                background: {ACCENT};
+                border-radius: 3px;
+            }}
+            QSlider::add-page:horizontal {{
+                background: rgba(255,255,255,0.06);
+                border-radius: 3px;
+            }}
+        """)
+        self._vol_slider.valueChanged.connect(self._on_volume_changed)
+        vol_row.addWidget(self._vol_slider, 1)
+
+        self._vol_value = QLabel(f'{self._config.get("sound_volume", 70)}%')
+        self._vol_value.setFixedWidth(35)
+        self._vol_value.setAlignment(Qt.AlignRight)
+        self._vol_value.setStyleSheet(
+            f"color: {T3}; font-size: 11px; font-family: {MONO}; border: none;"
+        )
+        vol_row.addWidget(self._vol_value)
+
+        self._vol_container = QWidget()
+        self._vol_container.setStyleSheet("background: transparent;")
+        self._vol_container.setLayout(vol_row)
+        self._vol_container.setVisible(self._sound_sw.isChecked())
+        notif_card.add_widget(self._vol_container)
 
         # 开机自启开关
         autostart_row = QHBoxLayout()
@@ -280,6 +433,7 @@ class SettingsWindow(QWidget):
 
         self._update_sound_controls(self._sound_sw.isChecked())
         root.addWidget(notif_card)
+        self._animatable_cards.append(notif_card)
 
         # ── 免打扰卡片 ──
         dnd_card = SectionCard("免打扰")
@@ -321,6 +475,7 @@ class SettingsWindow(QWidget):
 
         self._update_dnd_controls(self._dnd_sw.isChecked())
         root.addWidget(dnd_card)
+        self._animatable_cards.append(dnd_card)
 
         # ── 最近通知卡片 ──
         history_card = SectionCard("最近通知")
@@ -343,13 +498,34 @@ class SettingsWindow(QWidget):
             QListWidget::item:last {
                 border-bottom: none;
             }
-        """)
+        """ + SCROLLBAR_STYLE)
         self._history_list.setMaximumHeight(160)
         self._history_list.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         self._history_list.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self._history_list.setToolTip("最近收到的通知记录")
 
         history_card.add_widget(self._history_list)
+
+        # 筛选标签
+        self._history_filter = "all"
+        filter_row = QHBoxLayout()
+        filter_row.setSpacing(6)
+        self._filter_btns = {}
+        for key, label in [
+            ("all", "全部"), ("waiting", "等待"), ("running", "运行"),
+            ("error", "错误"), ("success", "完成"),
+        ]:
+            btn = QPushButton(label)
+            btn.setCheckable(True)
+            btn.setChecked(key == "all")
+            btn.setCursor(Qt.PointingHandCursor)
+            btn.setFixedHeight(24)
+            btn.clicked.connect(lambda checked, k=key: self._set_history_filter(k))
+            btn.setStyleSheet(self._filter_btn_style(key == "all"))
+            self._filter_btns[key] = btn
+            filter_row.addWidget(btn)
+        filter_row.addStretch()
+        history_card.add_layout(filter_row)
 
         self._empty_label = QLabel("暂无通知")
         self._empty_label.setStyleSheet(
@@ -361,16 +537,15 @@ class SettingsWindow(QWidget):
         btn_row_hist = QHBoxLayout()
         btn_row_hist.setSpacing(8)
 
-        clear_btn = QPushButton("清除历史")
-        clear_btn.setFixedHeight(28)
+        clear_btn = QPushButton("🗑 清除历史")
+        clear_btn.setFixedHeight(30)
         clear_btn.setCursor(Qt.PointingHandCursor)
-        clear_btn.setStyleSheet(self._btn_ghost())
+        clear_btn.setStyleSheet(self._btn_danger())
         clear_btn.setToolTip("清空所有通知记录")
         clear_btn.clicked.connect(self._clear_history)
         btn_row_hist.addWidget(clear_btn)
-
-        log_btn = QPushButton("查看日志")
-        log_btn.setFixedHeight(28)
+        log_btn = QPushButton("📂 查看日志")
+        log_btn.setFixedHeight(30)
         log_btn.setCursor(Qt.PointingHandCursor)
         log_btn.setStyleSheet(self._btn_ghost())
         log_btn.setToolTip("打开日志文件夹")
@@ -381,9 +556,11 @@ class SettingsWindow(QWidget):
         history_card.add_layout(btn_row_hist)
 
         root.addWidget(history_card, stretch=1)
+        self._animatable_cards.append(history_card)
         self._refresh_history()
 
         # ── QScrollArea 包裹 ──
+        self._setup_animations()
         scroll.setWidget(content)
         outer.addWidget(scroll)
 
@@ -475,15 +652,25 @@ class SettingsWindow(QWidget):
 
     def set_status(self, text: str, color: QColor = None):
         self._status.set_status(text, color)
+        # Update hero card
+        self._hero_status_text.setText(text)
+        if color is not None:
+            self._hero_icon.setStyleSheet(
+                f"font-size: 24px; color: {color.name()};"
+                " background: transparent; border: none;"
+            )
 
     def set_notif_count(self, count: int):
         self._status.set_count(count)
+        if count > 0:
+            self._hero_summary.setText(f"已捕获 {count} 个事件")
 
     def show_last_notification(self, event: AgentEvent):
         """从 AgentEvent 添加历史记录。"""
         self._history.append(
             {
                 "time": _time.strftime("%H:%M:%S"),
+                "timestamp": _time.time(),
                 "event_type": event.event_type,
                 "message": event.message,
                 "agent_id": event.agent_id,
@@ -494,6 +681,8 @@ class SettingsWindow(QWidget):
             self._history = self._history[-max_history:]
         self._save_history()
         self._refresh_history()
+        self._update_hero_summary(event)
+        self._update_stats()
 
     # ── 内部方法 ──────────────────────────────────────────
 
@@ -530,6 +719,40 @@ class SettingsWindow(QWidget):
         clear_crash_report()
         self._crash_bar.hide()
 
+    def _set_history_filter(self, key: str):
+        self._history_filter = key
+        for k, btn in self._filter_btns.items():
+            btn.setChecked(k == key)
+            btn.setStyleSheet(self._filter_btn_style(k == key))
+        self._refresh_history()
+
+    @staticmethod
+    def _filter_btn_style(active: bool) -> str:
+        if active:
+            return """
+                QPushButton {
+                    background: rgba(88, 166, 255, 0.2);
+                    color: #58a6ff;
+                    border: 1px solid rgba(88, 166, 255, 0.3);
+                    border-radius: 12px;
+                    padding: 0 10px;
+                    font-size: 11px;
+                }
+            """
+        return """
+            QPushButton {
+                background: transparent;
+                color: rgba(255,255,255,0.5);
+                border: 1px solid rgba(255,255,255,0.1);
+                border-radius: 12px;
+                padding: 0 10px;
+                font-size: 11px;
+            }
+            QPushButton:hover {
+                border-color: rgba(255,255,255,0.2);
+            }
+        """
+
     def _open_log_folder(self) -> None:
         """打开日志文件夹。"""
         from constants import SIGNAL_DIR
@@ -538,7 +761,13 @@ class SettingsWindow(QWidget):
 
     def _refresh_history(self):
         self._history_list.clear()
-        if not self._history:
+        filtered = self._history
+        if hasattr(self, "_history_filter") and self._history_filter != "all":
+            filtered = [
+                e for e in self._history
+                if e.get("event_type") == self._history_filter
+            ]
+        if not filtered:
             self._history_list.hide()
             self._empty_label.show()
             return
@@ -546,15 +775,16 @@ class SettingsWindow(QWidget):
         self._empty_label.hide()
         self._history_list.show()
 
-        for entry in reversed(self._history):
+        for entry in reversed(filtered):
             agent_id = entry.get("agent_id", "")
             source_display = self._adapter_display_names.get(agent_id, agent_id or "?")
 
             event_type = entry.get("event_type", "info")
             event_tag = _EVENT_TAGS.get(event_type, "信息")
-            text = f"{entry['time']}  [{event_tag}]  {entry['message']}"
+            rel = _relative_time(entry.get("timestamp", 0))
+            text = f"{rel}  [{event_tag}]  {entry['message']}"
             item = QListWidgetItem(text)
-            item.setToolTip(f"来源: {source_display}")
+            item.setToolTip(f"来源: {source_display}\n时间: {entry.get('time', '')}")
             self._history_list.addItem(item)
 
         self._history_list.scrollToBottom()
@@ -600,6 +830,13 @@ class SettingsWindow(QWidget):
 
     def _on_sound_toggled(self, checked: bool):
         self._update_sound_controls(checked)
+        if hasattr(self, "_vol_container"):
+            self._vol_container.setVisible(checked)
+        self._save()
+
+    def _on_volume_changed(self, value: int):
+        if hasattr(self, "_vol_value"):
+            self._vol_value.setText(f"{value}%")
         self._save()
 
     def _on_autostart_toggled(self, checked: bool):
@@ -633,7 +870,8 @@ class SettingsWindow(QWidget):
     def _preview_sound(self):
         from notification import play_sound
 
-        play_sound(self._config.get("custom_sound", ""))
+        vol = self._vol_slider.value() if hasattr(self, "_vol_slider") else 70
+        play_sound(self._config.get("custom_sound", ""), volume=vol)
 
     def _send_test_notification(self):
         test_msg = "这是一条测试通知，设置已生效"
@@ -655,24 +893,67 @@ class SettingsWindow(QWidget):
             )
 
     def toggle_pause(self):
+        from ui.widgets import apply_pause_filter
+
         self._is_paused = not self._is_paused
         if self._is_paused:
             self._pause_btn.setText("继续")
             self._pause_btn.setStyleSheet(self._btn_danger())
             self.set_status("已暂停", ORANGE)
+            self._hero_summary.setText("监控已暂停，不会接收新通知")
         else:
             self._pause_btn.setText("暂停")
             self._pause_btn.setStyleSheet(self._btn_primary())
             self.set_status("监控中", GREEN)
+            self._hero_summary.setText(self._last_notif_summary)
+        apply_pause_filter(self._scroll, self._is_paused)
         self.pause_toggled.emit(self._is_paused)
 
     def _save(self):
         self._config["sound_enabled"] = self._sound_sw.isChecked()
         self._config["toast_enabled"] = self._toast_sw.isChecked()
+        if hasattr(self, "_vol_slider"):
+            self._config["sound_volume"] = self._vol_slider.value()
         for key, sw in self._source_switches.items():
             self._config[key] = sw.isChecked()
         save_config(self._config)
         self.config_changed.emit()
+
+    def _make_stat_item(self, num: str, label: str) -> tuple:
+        """Create a stat display widget (number + label). Returns (widget, num_label)."""
+        w = QWidget()
+        w.setStyleSheet("background: transparent;")
+        layout = QVBoxLayout(w)
+        layout.setSpacing(2)
+        layout.setAlignment(Qt.AlignCenter)
+
+        num_lbl = QLabel(num)
+        num_lbl.setAlignment(Qt.AlignCenter)
+        num_lbl.setStyleSheet(
+            f"color: {T1}; font-size: 22px; font-weight: 700; border: none;"
+        )
+        layout.addWidget(num_lbl)
+
+        desc = QLabel(label)
+        desc.setAlignment(Qt.AlignCenter)
+        desc.setStyleSheet(f"color: {T3}; font-size: 11px; border: none;")
+        layout.addWidget(desc)
+
+        return (w, num_lbl)
+
+    def _update_stats(self):
+        """Update the stats card numbers from history."""
+        if not hasattr(self, "_stat_today"):
+            return
+        import time as _t
+        now = _t.time()
+        today_start = now - (now % 86400)
+        today_entries = [e for e in self._history if e.get("timestamp", 0) >= today_start]
+        waiting = sum(1 for e in today_entries if e.get("event_type") == "waiting")
+        errors = sum(1 for e in today_entries if e.get("event_type") == "error")
+        self._stat_today[1].setText(str(len(today_entries)))
+        self._stat_waiting[1].setText(str(waiting))
+        self._stat_errors[1].setText(str(errors))
 
     def _make_label(self, text: str) -> QLabel:
         lbl = QLabel(text)
@@ -735,9 +1016,90 @@ class SettingsWindow(QWidget):
                 self.resize(500, 700)
         self.layout().activate()
         QTimer.singleShot(0, self._sync_glow)
+        # Play entrance animations on first show
+        if not self._animations_played:
+            self._animations_played = True
+            QTimer.singleShot(80, self._play_entrance_animations)
 
     def _sync_glow(self):
         self._glow.setGeometry(0, 0, self.width(), self.height())
+
+    # ── 动画方法 ──────────────────────────────────────────
+
+    def _setup_animations(self):
+        """Pre-configure entrance animations: set all cards to invisible."""
+        for card in self._animatable_cards:
+            eff = QGraphicsOpacityEffect(card)
+            eff.setOpacity(0.0)
+            card.setGraphicsEffect(eff)
+
+    def _play_entrance_animations(self):
+        """Play staggered fade-in + slide-up for all cards."""
+        self._running_anims: list = []
+        for i, card in enumerate(self._animatable_cards):
+            delay = i * 60  # ANIM_STAGGER = 60ms
+            QTimer.singleShot(
+                delay,
+                lambda c=card, idx=i: self._animate_single_card(c, idx),
+            )
+
+    def _animate_single_card(self, card: QWidget, index: int):
+        """Animate a single card: fade-in + slide-up."""
+        from PySide6.QtCore import QPoint, QEasingCurve
+
+        duration = 250  # ANIM_NORMAL
+        slide_offset = 20  # pixels
+        ease = QEasingCurve.Type.OutQuart
+
+        original_pos = card.pos()
+        start_pos = QPoint(int(original_pos.x()), int(original_pos.y()) + slide_offset)
+
+        group = QParallelAnimationGroup(self)
+
+        # Opacity animation
+        eff = card.graphicsEffect()
+        if isinstance(eff, QGraphicsOpacityEffect):
+            opacity_anim = QPropertyAnimation(eff, b"opacity", self)
+            opacity_anim.setDuration(duration)
+            opacity_anim.setStartValue(0.0)
+            opacity_anim.setEndValue(1.0)
+            opacity_anim.setEasingCurve(ease)
+            group.addAnimation(opacity_anim)
+
+        # Position animation (slide-up)
+        pos_anim = QPropertyAnimation(card, b"pos", self)
+        pos_anim.setDuration(duration)
+        pos_anim.setStartValue(start_pos)
+        pos_anim.setEndValue(original_pos)
+        pos_anim.setEasingCurve(ease)
+        group.addAnimation(pos_anim)
+
+        self._running_anims.append(group)
+        group.finished.connect(lambda g=group: self._on_card_anim_finished(g))
+        group.start()
+
+    def _on_card_anim_finished(self, group):
+        """Clean up finished animation reference."""
+        if group in self._running_anims:
+            self._running_anims.remove(group)
+
+    def _update_hero_runtime(self):
+        """Update the hero card's runtime display."""
+        elapsed = int(_time.time() - self._hero_start_time)
+        if elapsed < 60:
+            self._hero_runtime.setText(f"已运行 {elapsed} 秒")
+        else:
+            mins = elapsed // 60
+            self._hero_runtime.setText(f"已运行 {mins} 分钟")
+
+    def _update_hero_summary(self, event):
+        """Update hero card summary with latest notification."""
+        tag = _EVENT_TAGS.get(event.event_type, "信息")
+        summary = f"[{tag}] {event.message}"
+        if len(summary) > 45:
+            summary = summary[:42] + "..."
+        self._last_notif_summary = summary
+        self._hero_summary.setText(summary)
 
     def resizeEvent(self, event):
         super().resizeEvent(event)

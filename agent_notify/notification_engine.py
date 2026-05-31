@@ -79,6 +79,7 @@ class NotificationEngine:
                     sound=config.get("sound_enabled", True),
                     source=event.agent_id,
                     sound_path=config.get("custom_sound", ""),
+                    volume=config.get("sound_volume", 70),
                 )
         except Exception:
             logger.exception("处理事件时出错")

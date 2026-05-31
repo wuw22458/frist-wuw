@@ -320,6 +320,66 @@ class SectionCard(QFrame):
         self._layout.addLayout(layout)
 
 
+# ── 波纹效果 ────────────────────────────────────────────
+
+
+class RippleEffect(QWidget):
+    """An expanding ring ripple animation on a QLabel circle."""
+    def __init__(self, color: str = '#58a6ff', parent=None):
+        super().__init__(parent)
+        self._color = color
+        self._rings: list[QWidget] = []
+        self.setAttribute(Qt.WA_TransparentForMouseEvents, True)
+        if parent:
+            self.resize(parent.size())
+
+    def trigger(self, count=3):
+        """Launch 'count' expanding ring animations."""
+        from PySide6.QtCore import QPropertyAnimation, QEasingCurve, QTimer
+        from PySide6.QtWidgets import QGraphicsOpacityEffect
+
+        cx, cy = self.width() // 2, self.height() // 2
+        max_r = max(self.width(), self.height()) * 1.5
+
+        for i in range(count):
+            ring = QWidget(self)
+            ring.setAttribute(Qt.WA_StyledBackground, True)
+            r = 8
+            ring.setGeometry(cx - r, cy - r, r * 2, r * 2)
+            ring.setStyleSheet(
+                f'background: transparent;'
+                f'border: 2px solid {self._color};'
+                f'border-radius: {r}px;'
+            )
+            eff = QGraphicsOpacityEffect(ring)
+            eff.setOpacity(0.8)
+            ring.setGraphicsEffect(eff)
+            ring.show()
+
+            # Opacity fade
+            op = QPropertyAnimation(eff, b'opacity', ring)
+            op.setDuration(800)
+            op.setStartValue(0.8)
+            op.setEndValue(0.0)
+            op.setEasingCurve(QEasingCurve.Type.OutQuart)
+
+            # Size expand
+            geo = QPropertyAnimation(ring, b'geometry', ring)
+            geo.setDuration(800)
+            geo.setStartValue(ring.geometry())
+            geo.setEndValue(
+                ring.geometry().adjusted(
+                    int(-max_r / 2), int(-max_r / 2),
+                    int(max_r / 2), int(max_r / 2)
+                )
+            )
+            geo.setEasingCurve(QEasingCurve.Type.OutQuart)
+
+            op.start()
+            geo.start()
+            QTimer.singleShot(1000, ring.deleteLater)
+
+
 # ── 状态指示器 ────────────────────────────────────────────
 
 
@@ -407,6 +467,15 @@ class StatusIndicator(QWidget):
             mins = elapsed // 60
             self._runtime.setText(f"已运行 {mins} 分钟")
 
+    def pulse(self, color: str | None = None):
+        """Trigger a pulse animation with ripple effect."""
+        c = color or self._dot.styleSheet().split("color:")[1].split(";")[0].strip()
+        if not hasattr(self, '_ripple'):
+            self._ripple = RippleEffect(c, self)
+        else:
+            self._ripple._color = c
+        self._ripple.trigger(3)
+
 
 # ── 通用横幅组件 ──────────────────────────────────────────
 
@@ -485,3 +554,30 @@ def _shadow(widget, color=None, radius=12, offset_y=2):
     effect.setBlurRadius(radius)
     effect.setOffset(0, offset_y)
     widget.setGraphicsEffect(effect)
+
+
+# ── 暂停滤镜 ────────────────────────────────────────────
+
+
+def apply_pause_filter(widget: QWidget, paused: bool):
+    """Desaturate a widget subtree when paused."""
+    from PySide6.QtWidgets import QGraphicsOpacityEffect
+    from PySide6.QtCore import QPropertyAnimation
+    if paused:
+        eff = QGraphicsOpacityEffect(widget)
+        eff.setOpacity(1.0)
+        widget.setGraphicsEffect(eff)
+        anim = QPropertyAnimation(eff, b'opacity', widget)
+        anim.setDuration(300)
+        anim.setStartValue(1.0)
+        anim.setEndValue(0.4)
+        anim.start()
+    else:
+        eff = widget.graphicsEffect()
+        if isinstance(eff, QGraphicsOpacityEffect):
+            anim = QPropertyAnimation(eff, b'opacity', widget)
+            anim.setDuration(300)
+            anim.setStartValue(eff.opacity())
+            anim.setEndValue(1.0)
+            anim.finished.connect(lambda: widget.setGraphicsEffect(None))
+            anim.start()

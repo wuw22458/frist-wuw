@@ -109,6 +109,13 @@ def main() -> None:
     # 安装崩溃处理器（覆盖 log.py 的基础 excepthook）
     install_crash_handler()
 
+    # ── 启动 Splash Screen ──
+    from ui.splash import AnimatedSplash
+
+    splash = AnimatedSplash(__version__)
+    splash.show_animated(1200)
+    app.processEvents()
+
     # ── 首次运行向导 ──
     from ui.wizard import SetupWizard, mark_wizard_completed, should_run_wizard
 

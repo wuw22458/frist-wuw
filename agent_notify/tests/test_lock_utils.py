@@ -1,29 +1,17 @@
 """lock_utils.py 进程锁单元测试。"""
 
-import os
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
 
-@pytest.fixture()
-def lock_env(tmp_path, monkeypatch):
-    """将 LOCK_FILE 指向临时目录。"""
-    import constants
-
-    lock_file = tmp_path / ".lock"
-    monkeypatch.setattr(constants, "LOCK_FILE", lock_file)
-    import lock_utils
-
-    monkeypatch.setattr(lock_utils, "LOCK_FILE", lock_file)
-    return lock_file
-
-
 class TestIsProcessRunning:
     @patch("ctypes.windll.kernel32.OpenProcess")
+    @patch("ctypes.windll.kernel32.WaitForSingleObject")
     @patch("ctypes.windll.kernel32.CloseHandle")
-    def test_running(self, mock_close, mock_open):
+    def test_running(self, mock_close, mock_wait, mock_open):
         mock_open.return_value = 1234  # non-zero handle
+        mock_wait.return_value = 258  # WAIT_TIMEOUT = 进程存活
         from lock_utils import is_process_running
 
         assert is_process_running(999) is True
@@ -42,36 +30,54 @@ class TestIsProcessRunning:
 
         assert is_process_running(999) is False
 
+    @patch("ctypes.windll.kernel32.OpenProcess")
+    @patch("ctypes.windll.kernel32.WaitForSingleObject")
+    @patch("ctypes.windll.kernel32.CloseHandle")
+    def test_process_terminated(self, mock_close, mock_wait, mock_open):
+        mock_open.return_value = 1234
+        mock_wait.return_value = 0  # WAIT_OBJECT_0 = 进程已终止
+        from lock_utils import is_process_running
+
+        assert is_process_running(999) is False
+
 
 class TestCheckSingleInstance:
-    @patch("lock_utils.is_process_running", return_value=False)
-    def test_no_lock_file(self, mock_running, lock_env):
+    @patch("ctypes.windll.kernel32.CreateMutexW")
+    @patch("ctypes.windll.kernel32.GetLastError")
+    def test_first_instance(self, mock_error, mock_create):
+        """测试首次启动（创建 Mutex 成功）。"""
+        mock_create.return_value = 1234  # 有效句柄
+        mock_error.return_value = 0  # ERROR_SUCCESS
         from lock_utils import check_single_instance
 
         result = check_single_instance()
         assert result is True
-        assert lock_env.exists()
-        assert lock_env.read_text() == str(os.getpid())
 
-    @patch("lock_utils.is_process_running", return_value=True)
-    def test_active_pid(self, mock_running, lock_env):
-        lock_env.write_text("12345")
+    @patch("ctypes.windll.kernel32.CreateMutexW")
+    @patch("ctypes.windll.kernel32.GetLastError")
+    @patch("ctypes.windll.kernel32.CloseHandle")
+    def test_already_running(self, mock_close, mock_error, mock_create):
+        """测试已有实例在运行（Mutex 已存在）。"""
+        mock_create.return_value = 1234
+        mock_error.return_value = 183  # ERROR_ALREADY_EXISTS
         from lock_utils import check_single_instance
 
         result = check_single_instance()
         assert result is False
+        mock_close.assert_called_once_with(1234)
 
-    @patch("lock_utils.is_process_running", return_value=False)
-    def test_stale_pid(self, mock_running, lock_env):
-        lock_env.write_text("99999")
+    @patch("ctypes.windll.kernel32.CreateMutexW")
+    def test_create_mutex_failed(self, mock_create):
+        """测试 CreateMutexW 失败（降级处理）。"""
+        mock_create.return_value = 0  # 失败
         from lock_utils import check_single_instance
 
         result = check_single_instance()
-        assert result is True
-        assert lock_env.read_text() == str(os.getpid())
+        assert result is True  # 降级允许启动
 
-    def test_corrupt_lock_file(self, lock_env):
-        lock_env.write_text("not_a_pid")
+    @patch("ctypes.windll.kernel32.CreateMutexW", side_effect=Exception("test"))
+    def test_exception_handling(self, mock_create):
+        """测试异常处理（降级允许启动）。"""
         from lock_utils import check_single_instance
 
         result = check_single_instance()
@@ -79,14 +85,28 @@ class TestCheckSingleInstance:
 
 
 class TestCleanupLock:
-    def test_deletes_file(self, lock_env):
-        lock_env.write_text("123")
-        from lock_utils import cleanup_lock
+    @patch("ctypes.windll.kernel32.CloseHandle")
+    def test_cleanup_with_handle(self, mock_close):
+        """测试有 Mutex 句柄时的清理。"""
+        import lock_utils
+        lock_utils._mutex_handle = 1234
 
-        cleanup_lock()
-        assert not lock_env.exists()
+        lock_utils.cleanup_lock()
+        mock_close.assert_called_once_with(1234)
+        assert lock_utils._mutex_handle is None
 
-    def test_no_file(self, lock_env):
-        from lock_utils import cleanup_lock
+    def test_cleanup_without_handle(self):
+        """测试无 Mutex 句柄时的清理（不应抛异常）。"""
+        import lock_utils
+        lock_utils._mutex_handle = None
 
-        cleanup_lock()  # 不应抛异常
+        lock_utils.cleanup_lock()  # 不应抛异常
+
+    @patch("ctypes.windll.kernel32.CloseHandle", side_effect=Exception("test"))
+    def test_cleanup_exception_handling(self, mock_close):
+        """测试清理时的异常处理。"""
+        import lock_utils
+        lock_utils._mutex_handle = 1234
+
+        lock_utils.cleanup_lock()  # 不应抛异常
+        assert lock_utils._mutex_handle is None

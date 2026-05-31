@@ -74,13 +74,14 @@ def _get_player() -> QMediaPlayer | None:
     return _player
 
 
-def play_sound(sound_path: str = "") -> None:
+def play_sound(sound_path: str = "", volume: int = 70) -> None:
     """播放提示音。支持 WAV / MP3 / FLAC 等格式。
 
     优先使用自定义路径，其次默认 notify.wav，文件不存在则静默跳过。
 
     Args:
         sound_path: 自定义音频文件路径，为空时使用默认 notify.wav。
+        volume: 音量 0-100，默认 70。
     """
     path = sound_path if (sound_path and Path(sound_path).is_file()) else None
 
@@ -99,6 +100,8 @@ def play_sound(sound_path: str = "") -> None:
 
     try:
         player.setSource(QUrl.fromLocalFile(path))
+        if _audio is not None:
+            _audio.setVolume(volume / 100.0)
         player.play()
         logger.debug("播放提示音: %s", path)
     except Exception as e:
@@ -179,7 +182,8 @@ def _escape_xml(text: str) -> str:
 
 
 def notify(
-    title: str, message: str, sound: bool = True, source: str = "", sound_path: str = ""
+    title: str, message: str, sound: bool = True, source: str = "", sound_path: str = "",
+    volume: int = 70,
 ) -> None:
     """发送通知（可选声音）。
 
@@ -194,5 +198,5 @@ def notify(
         "通知: [%s] %s (sound=%s, source=%s)", title, message[:80], sound, source
     )
     if sound:
-        play_sound(sound_path)
+        play_sound(sound_path, volume=volume)
     show_toast(title, message, source)

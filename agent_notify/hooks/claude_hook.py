@@ -27,7 +27,6 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from constants import SIGNAL_DIR
-from lock_utils import LOCK_FILE, is_process_running
 from log import get_logger
 
 logger = get_logger("hook")
@@ -87,18 +86,10 @@ def write_signal(event: str, message: str, source: str = "claude-code") -> None:
 def ensure_app_running() -> None:
     """如果托盘应用未运行，则后台启动它（非阻塞）。
 
-    通过锁文件中的 PID 判断是否已有实例。启动后立即返回，不等待结果。
+    总是尝试启动应用，由应用内部的单实例检查（Windows Mutex）处理重复实例。
+    启动后立即返回，不等待结果。
     """
-    try:
-        if LOCK_FILE.exists():
-            pid = int(LOCK_FILE.read_text().strip())
-            if is_process_running(pid):
-                logger.debug("托盘应用已在运行, PID=%d", pid)
-                return
-    except (ValueError, OSError):
-        pass
-
-    logger.info("托盘应用未运行，正在启动...")
+    logger.info("正在确保托盘应用运行...")
     try:
         subprocess.Popen(
             [sys.executable, str(APP_SCRIPT)],

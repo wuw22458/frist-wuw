@@ -37,6 +37,8 @@ a = Analysis(
         'ui.widgets',
         'ui.settings',
         'ui.tray',
+        'ui.splash',
+        'ui.style',
     ],
     hookspath=[],
     hooksconfig={},
