@@ -249,6 +249,13 @@ class HookConfigPage(QWizardPage):
         self._claude_hook_cb.setChecked(True)
         claude_layout.addWidget(self._claude_hook_cb)
 
+        # 配置状态标签
+        self._status_label = QLabel("")
+        self._status_label.setStyleSheet("font-size: 12px; color: #707070;")
+        self._status_label.setWordWrap(True)
+        self._status_label.setVisible(False)
+        claude_layout.addWidget(self._status_label)
+
         hint2 = QLabel("💡 你也可以稍后在托盘菜单 → 设置中手动配置")
         hint2.setStyleSheet("font-size: 11px; color: #606060;")
         claude_layout.addWidget(hint2)
@@ -282,6 +289,29 @@ class HookConfigPage(QWizardPage):
             self._other_label.setText(
                 "其他 Agent 无需额外配置，会自动通过信号文件接收通知。"
             )
+
+    def configure_hooks(self) -> bool:
+        """自动配置 Claude Code Hook（如果用户选择）。"""
+        if not self.configure_claude_hook:
+            return True
+
+        self._status_label.setText("正在配置 Claude Code Hook...")
+        self._status_label.setStyleSheet("font-size: 12px; color: #707070;")
+        self._status_label.setVisible(True)
+
+        try:
+            from hook_utils import install_hooks
+
+            install_hooks()
+            self._status_label.setText("✓ Claude Code Hook 已配置成功")
+            self._status_label.setStyleSheet("font-size: 12px; color: #3fb950;")
+            logger.info("向导自动配置 Claude Code Hook 完成")
+            return True
+        except Exception as e:
+            self._status_label.setText(f"✗ 配置失败: {e}")
+            self._status_label.setStyleSheet("font-size: 12px; color: #f85149;")
+            logger.warning("向导自动配置 Claude Code Hook 失败: %s", e)
+            return False
 
     @property
     def configure_claude_hook(self) -> bool:
@@ -515,14 +545,7 @@ class SetupWizard(QWizard):
         mark_wizard_completed()
 
         # 自动配置 Claude Code Hook
-        if self.configure_claude_hook:
-            try:
-                from hook_utils import install_hooks
-
-                install_hooks()
-                logger.info("向导自动配置 Claude Code Hook 完成")
-            except Exception as e:
-                logger.warning("向导自动配置 Claude Code Hook 失败: %s", e)
+        self._hooks.configure_hooks()
 
         logger.info(
             "首次配置向导完成: agents=%s, sound=%s, toast=%s, autostart=%s",
