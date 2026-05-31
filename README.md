@@ -1,4 +1,4 @@
-# frist-wuw
+# first-wuw
 
 wuw 的个人项目仓库，包含以下独立子项目。
 
