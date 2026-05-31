@@ -1,6 +1,7 @@
 """设置面板 — SettingsWindow。"""
 
 import json
+import os
 import time as _time
 from pathlib import Path
 
@@ -555,6 +556,14 @@ class SettingsWindow(QWidget):
         log_btn.clicked.connect(self._open_log_folder)
         btn_row_hist.addWidget(log_btn)
 
+        diag_btn = QPushButton("🔍 诊断")
+        diag_btn.setFixedHeight(30)
+        diag_btn.setCursor(Qt.PointingHandCursor)
+        diag_btn.setStyleSheet(self._btn_ghost())
+        diag_btn.setToolTip("检查配置是否正常")
+        diag_btn.clicked.connect(self._run_diagnostics)
+        btn_row_hist.addWidget(diag_btn)
+
         btn_row_hist.addStretch()
         history_card.add_layout(btn_row_hist)
 
@@ -776,6 +785,87 @@ class SettingsWindow(QWidget):
         from constants import SIGNAL_DIR
 
         QDesktopServices.openUrl(QUrl.fromLocalFile(str(SIGNAL_DIR)))
+
+    def _run_diagnostics(self) -> None:
+        """运行诊断检查并显示结果。"""
+        from constants import SIGNAL_DIR
+        import subprocess
+        import sys
+
+        results = []
+
+        # 1. 检查信号目录
+        if SIGNAL_DIR.exists():
+            if os.access(SIGNAL_DIR, os.W_OK):
+                results.append(("信号目录", True, str(SIGNAL_DIR)))
+            else:
+                results.append(("信号目录", False, f"目录存在但不可写: {SIGNAL_DIR}"))
+        else:
+            results.append(("信号目录", False, f"目录不存在: {SIGNAL_DIR}"))
+
+        # 2. 检查 Claude Code Hook 配置
+        try:
+            from hook_utils import _read_settings
+
+            settings = _read_settings()
+            hooks = settings.get("hooks", {})
+            if hooks:
+                results.append(("Claude Code Hook", True, "已配置"))
+            else:
+                results.append(("Claude Code Hook", False, "未配置"))
+        except Exception as e:
+            results.append(("Claude Code Hook", False, f"检查失败: {e}"))
+
+        # 3. 检查 Toast 通知权限
+        try:
+            from notification import _HAS_WINOTOAST
+
+            if _HAS_WINOTOAST:
+                results.append(("Toast 通知", True, "winotify 可用"))
+            else:
+                results.append(("Toast 通知", True, "使用 PowerShell 回退"))
+        except Exception as e:
+            results.append(("Toast 通知", False, f"检查失败: {e}"))
+
+        # 4. 检查配置文件
+        from constants import CONFIG_FILE
+
+        if CONFIG_FILE.exists():
+            try:
+                import json
+                json.loads(CONFIG_FILE.read_text(encoding="utf-8"))
+                results.append(("配置文件", True, "格式正确"))
+            except Exception as e:
+                results.append(("配置文件", False, f"格式错误: {e}"))
+        else:
+            results.append(("配置文件", True, "使用默认配置"))
+
+        # 显示诊断结果
+        self._show_diagnostics_results(results)
+
+    def _show_diagnostics_results(self, results: list) -> None:
+        """显示诊断结果对话框。"""
+        from PySide6.QtWidgets import QMessageBox
+
+        msg = QMessageBox(self)
+        msg.setWindowTitle("诊断结果")
+        msg.setIcon(QMessageBox.Information)
+
+        text = "诊断检查结果：\n\n"
+        all_ok = True
+        for name, ok, detail in results:
+            status = "✓" if ok else "✗"
+            text += f"{status} {name}: {detail}\n"
+            if not ok:
+                all_ok = False
+
+        if all_ok:
+            text += "\n所有检查通过，配置正常。"
+        else:
+            text += "\n部分检查失败，请根据提示修复。"
+
+        msg.setText(text)
+        msg.exec()
 
     def _refresh_history(self):
         self._history_list.clear()
