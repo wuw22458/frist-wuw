@@ -434,34 +434,16 @@ class FinishPage(QWizardPage):
 class SetupWizard(QWizard):
     """引导式安装向导."""
 
-    STYLE_SHEET = """
-        QWizard {
-            background-color: #1e1e2e;
-            color: #d0d0d0;
-        }
-        QWizard QLabel { color: #d0d0d0; }
-        QWizard QPushButton {
-            background-color: #3a3a5c;
-            color: #e0e0e0;
-            border: 1px solid #505070;
-            border-radius: 4px;
-            padding: 6px 18px;
-            font-size: 12px;
-        }
-        QWizard QPushButton:hover { background-color: #4a4a7c; }
-        QWizard QPushButton#qt_wizard_commit {
-            background-color: #2563eb;
-            border-color: #3b82f6;
-        }
-        QWizard QPushButton#qt_wizard_commit:hover { background-color: #3b82f6; }
-    """
-
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle(f'{APP_NAME} — 初始配置')
         self.setWizardStyle(QWizard.WizardStyle.ModernStyle)
         self.setMinimumSize(560, 440)
-        self.setStyleSheet(self.STYLE_SHEET)
+
+        # 使用 theme.py 统一样式
+        from ui.theme import get_wizard_style
+        self.setStyleSheet(get_wizard_style())
+
         self.setOptions(QWizard.WizardOption.NoBackButtonOnStartPage | QWizard.WizardOption.NoCancelButtonOnLastPage)
         self.setPixmap(QWizard.WizardPixmap.LogoPixmap, QPixmap())
 
