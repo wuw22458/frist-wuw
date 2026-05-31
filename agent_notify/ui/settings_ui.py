@@ -99,15 +99,15 @@ class SettingsUIBuilder:
         root.setContentsMargins(24, 20, 24, 20)
         root.setSpacing(16)
 
-        # 构建各个区域
+        # 构建各个区域（最近通知提升到 Hero 下方）
         self._build_title_area(root)
         self._build_banners(root)
         self._build_hero_card(root)
+        self._build_history_card(root)  # 提升到此处
         self._build_stats_card(root)
         self._build_sources_card(root)
         self._build_notification_card(root)
         self._build_dnd_card(root)
-        self._build_history_card(root)
 
         # 包裹滚动区域
         scroll.setWidget(content)
@@ -430,6 +430,15 @@ class SettingsUIBuilder:
                 font-size: 11px;
                 padding: 5px 8px;
                 border-bottom: 1px solid rgba(255,255,255,0.05);
+                border-radius: 4px;
+            }
+            QListWidget::item:hover {
+                background: rgba(255,255,255,0.08);
+                color: rgba(255,255,255,0.85);
+            }
+            QListWidget::item:selected {
+                background: rgba(88,166,255,0.15);
+                color: rgba(255,255,255,0.95);
             }
             QListWidget::item:last {
                 border-bottom: none;

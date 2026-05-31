@@ -252,6 +252,9 @@ class SettingsWindow(QWidget):
         ui._empty_label.hide()
         ui._history_list.show()
 
+        # 更新筛选按钮计数
+        self._update_filter_counts()
+
         for entry in reversed(filtered):
             agent_id = entry.get('agent_id', '')
             source_display = self._adapter_display_names.get(agent_id, agent_id or '?')
@@ -259,7 +262,11 @@ class SettingsWindow(QWidget):
             event_type = entry.get('event_type', 'info')
             event_tag = _EVENT_TAGS.get(event_type, '信息')
             rel = _relative_time(entry.get('timestamp', 0))
-            text = f'{rel}  [{event_tag}]  {entry["message"]}'
+
+            # 增加来源标识
+            source_prefix = f'[{source_display}] ' if source_display and source_display != '?' else ''
+            text = f'{rel}  {source_prefix}[{event_tag}]  {entry["message"]}'
+
             from PySide6.QtWidgets import QListWidgetItem
             item = QListWidgetItem(text)
             item.setToolTip(f'来源: {source_display}\n时间: {entry.get("time", "")}')
@@ -273,6 +280,28 @@ class SettingsWindow(QWidget):
             self._ui._stat_today[1].setText(str(stats['total']))
             self._ui._stat_waiting[1].setText(str(stats['waiting']))
             self._ui._stat_errors[1].setText(str(stats['errors']))
+
+    def _update_filter_counts(self):
+        """更新筛选按钮的计数显示."""
+        counts = self._history.get_filter_counts()
+        ui = self._ui
+
+        # 按钮文本映射
+        label_map = {
+            'all': '全部',
+            'waiting': '等待',
+            'running': '运行',
+            'error': '错误',
+            'success': '完成',
+        }
+
+        for key, btn in ui._filter_btns.items():
+            count = counts.get(key, 0)
+            label = label_map.get(key, key)
+            if count > 0:
+                btn.setText(f'{label} ({count})')
+            else:
+                btn.setText(label)
 
     def _update_hero_summary(self, event):
         summary = self._presenter.update_hero_summary(event)
