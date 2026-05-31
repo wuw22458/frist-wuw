@@ -7,7 +7,7 @@
 ;   3. 产物在 output/AgentNotifySetup.exe
 
 #define MyAppName "Agent Notify"
-#define MyAppVersion "1.2.1"
+#define MyAppVersion "1.3.0"
 #define MyAppPublisher "WUW"
 #define MyAppURL "https://github.com/wuw22458/agent_notify"
 #define MyAppExeName "AgentNotify.exe"

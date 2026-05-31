@@ -12,7 +12,7 @@
 import shutil
 from pathlib import Path
 
-__version__ = "1.2.1"
+__version__ = "1.3.0"
 
 # ── 路径（解耦自 ~/.claude，使用独立的 ~/.agent-notify）──
 SIGNAL_DIR = Path.home() / ".agent-notify"

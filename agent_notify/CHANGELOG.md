@@ -5,6 +5,31 @@ All notable changes to Agent Notify will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.3.0] - 2026-05-31
+
+### Added
+
+- 测试通知功能改进：发送结果反馈（✓ 已发送 / ✗ 失败），2 秒后自动恢复按钮状态
+- 向导自动配置 Claude Code Hook：配置过程中显示进度状态，成功/失败时显示明确提示
+- 诊断功能：检查信号目录、Claude Code Hook、Toast 通知权限、配置文件，显示诊断结果对话框
+- 反馈提示优化：标题映射提取到配置文件（title_map），支持用户自定义通知标题
+- FAQ 和故障排除指南：创建 docs/troubleshooting.md，README 添加 FAQ 部分
+- 自适应轮询机制：根据事件频率动态调整轮询间隔，夜间自动降低频率，添加性能监控统计
+- 版本锁定文件：创建 requirements-lock.txt 确保构建一致性
+- 产品需求文档（PRD）：定义产品定位、功能优先级、用户故事、发布计划
+- 设置界面添加「帮助」按钮，链接到故障排除指南
+- 重试机制：创建 retry.py 通用重试装饰器，信号文件解析、更新检查/下载支持重试
+
+### Fixed
+
+- 单实例锁竞态条件：使用 Windows Mutex 替代 PID 文件，消除 TOCTOU 竞态条件
+
+### Changed
+
+- 样式重构：提取 settings.py 样式方法到 ui/settings_styles.py，settings.py 从 1263 行减少到 1160 行
+- 日志优化："节流抑制"改为"通知已发送，稍后再次提醒"，更用户友好
+- 更新检查和下载失败后自动重试 3 次（指数退避）
+
 ## [1.2.0] - 2026-05-24
 
 ### Added
