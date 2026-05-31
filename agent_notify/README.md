@@ -186,6 +186,32 @@ pyinstaller agent_notify.spec --noconfirm
 - [CHANGELOG.md](CHANGELOG.md) — 版本变更记录
 - [CONTRIBUTING.md](CONTRIBUTING.md) — 贡献指南
 - [TECHNICAL.md](TECHNICAL.md) — 技术设计文档
+- [故障排除指南](docs/troubleshooting.md) — 常见问题解答
+
+## FAQ
+
+### Q: 收不到通知怎么办？
+
+1. 检查 Windows 通知权限（设置 → 系统 → 通知）
+2. 使用应用内的"诊断"功能检查配置
+3. 参阅 [故障排除指南](docs/troubleshooting.md)
+
+### Q: Claude Code 不发送通知？
+
+1. 运行 `AgentNotify.exe --install-hooks` 重新配置 Hook
+2. 检查 `~/.claude/settings.json` 是否包含 hooks 配置
+3. 查看日志文件排查问题
+
+### Q: 如何添加自定义 Agent？
+
+编辑 `~/.agent-notify/custom_agents.yaml`，参考 [添加自定义 Agent](#添加自定义-agent) 章节。
+
+### Q: 如何完全卸载？
+
+1. 通过控制面板卸载程序
+2. 手动删除 `%USERPROFILE%\.agent-notify` 文件夹（可选）
+
+更多问题请参阅 [故障排除指南](docs/troubleshooting.md)。
 
 ## License
 

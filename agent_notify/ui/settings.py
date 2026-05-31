@@ -572,6 +572,14 @@ class SettingsWindow(QWidget):
         diag_btn.clicked.connect(self._run_diagnostics)
         btn_row_hist.addWidget(diag_btn)
 
+        help_btn = QPushButton("❓ 帮助")
+        help_btn.setFixedHeight(30)
+        help_btn.setCursor(Qt.PointingHandCursor)
+        help_btn.setStyleSheet(btn_ghost())
+        help_btn.setToolTip("查看故障排除指南")
+        help_btn.clicked.connect(self._open_troubleshooting)
+        btn_row_hist.addWidget(help_btn)
+
         btn_row_hist.addStretch()
         history_card.add_layout(btn_row_hist)
 
@@ -698,6 +706,12 @@ class SettingsWindow(QWidget):
         from constants import SIGNAL_DIR
 
         QDesktopServices.openUrl(QUrl.fromLocalFile(str(SIGNAL_DIR)))
+
+    def _open_troubleshooting(self) -> None:
+        """打开故障排除指南。"""
+        import webbrowser
+
+        webbrowser.open("https://github.com/wuw22458/agent_notify/blob/main/docs/troubleshooting.md")
 
     def _run_diagnostics(self) -> None:
         """运行诊断检查并显示结果。"""
