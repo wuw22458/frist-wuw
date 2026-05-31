@@ -1,10 +1,10 @@
-"""设置面板样式 — 按钮、输入框等样式定义。"""
+"""设置面板样式 — 按钮、输入框等样式定义."""
 
-from ui.widgets import FONT, T1, MONO, ACCENT
+from ui.widgets import ACCENT, FONT, MONO, T1
 
 
 def btn_primary() -> str:
-    """主要按钮样式。"""
+    """主要按钮样式."""
     return f"""
         QPushButton {{
             background: #1e6ff0;
@@ -22,7 +22,7 @@ def btn_primary() -> str:
 
 
 def btn_ghost() -> str:
-    """幽灵按钮样式。"""
+    """幽灵按钮样式."""
     return f"""
         QPushButton {{
             background: rgba(255,255,255,0.08);
@@ -47,7 +47,7 @@ def btn_ghost() -> str:
 
 
 def btn_danger() -> str:
-    """危险按钮样式。"""
+    """危险按钮样式."""
     return f"""
         QPushButton {{
             background: rgba(248,81,73,0.18);
@@ -64,7 +64,7 @@ def btn_danger() -> str:
 
 
 def btn_success() -> str:
-    """成功按钮样式。"""
+    """成功按钮样式."""
     return f"""
         QPushButton {{
             background: rgba(63,185,80,0.18);
@@ -81,7 +81,7 @@ def btn_success() -> str:
 
 
 def input_style() -> str:
-    """输入框样式。"""
+    """输入框样式."""
     return f"""
         QLineEdit {{
             background: rgba(0,0,0,0.25);
@@ -99,7 +99,7 @@ def input_style() -> str:
 
 
 def filter_btn_style(active: bool) -> str:
-    """历史过滤按钮样式。"""
+    """历史过滤按钮样式."""
     if active:
         return """
             QPushButton {

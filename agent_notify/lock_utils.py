@@ -1,17 +1,16 @@
-"""进程锁工具 — 基于 Windows Mutex 的单实例保证。
+"""进程锁工具 — 基于 Windows Mutex 的单实例保证.
 
-使用 kernel32.CreateMutexW 实现原子性单实例检查，避免 PID 文件的 TOCTOU 竞态条件。
-Mutex 是内核对象，进程退出时自动释放，无需手动清理。
+使用 kernel32.CreateMutexW 实现原子性单实例检查,避免 PID 文件的 TOCTOU 竞态条件.
+Mutex 是内核对象,进程退出时自动释放,无需手动清理.
 
-优势：
-1. 原子性操作，无竞态条件
-2. 进程崩溃后自动释放（内核对象生命周期管理）
+优势:
+1. 原子性操作,无竞态条件
+2. 进程崩溃后自动释放(内核对象生命周期管理)
 3. 无需写入文件系统
 """
 
 import ctypes
 import ctypes.wintypes
-from typing import Optional
 
 # Windows API 常量
 ERROR_ALREADY_EXISTS = 183
@@ -20,23 +19,23 @@ SYNCHRONIZE = 0x00100000
 MUTEX_ALL_ACCESS = 0x001F0001
 
 # 全局 Mutex 句柄（防止被垃圾回收）
-_mutex_handle: Optional[int] = None
+_mutex_handle: int | None = None
 
 
 def _get_kernel32():
-    """获取 kernel32.dll 实例。"""
+    """获取 kernel32.dll 实例."""
     return ctypes.windll.kernel32
 
 
 def check_single_instance() -> bool:
-    """检查是否已有实例在运行，如果没有则创建 Mutex。
+    """检查是否已有实例在运行,如果没有则创建 Mutex.
 
-    使用 CreateMutexW 创建命名 Mutex：
-    - 如果 Mutex 已存在（ERROR_ALREADY_EXISTS），返回 False
-    - 如果创建成功，返回 True
+    使用 CreateMutexW 创建命名 Mutex:
+    - 如果 Mutex 已存在(ERROR_ALREADY_EXISTS),返回 False
+    - 如果创建成功,返回 True
 
     Returns:
-        True 表示当前是唯一实例，False 表示已有实例在运行。
+        True 表示当前是唯一实例,False 表示已有实例在运行.
     """
     global _mutex_handle
 
@@ -46,13 +45,14 @@ def check_single_instance() -> bool:
     # 名称格式：Local\AgentNotify_<version>
     # 使用 Local 前缀确保在当前会话中唯一
     from constants import __version__
-    mutex_name = f"Local\\AgentNotify_{__version__.replace('.', '_')}"
+
+    mutex_name = f'Local\\AgentNotify_{__version__.replace(".", "_")}'
 
     try:
         _mutex_handle = kernel32.CreateMutexW(
-            None,      # 安全属性
-            False,     # 初始所有者
-            mutex_name # Mutex 名称
+            None,  # 安全属性
+            False,  # 初始所有者
+            mutex_name,  # Mutex 名称
         )
 
         if _mutex_handle == 0:
@@ -77,9 +77,9 @@ def check_single_instance() -> bool:
 
 
 def cleanup_lock() -> None:
-    """释放 Mutex 句柄（应用退出时调用，通过 aboutToQuit 信号触发）。
+    """释放 Mutex 句柄(应用退出时调用,通过 aboutToQuit 信号触发).
 
-    注意：进程退出时内核会自动释放 Mutex，此函数主要用于显式清理。
+    注意:进程退出时内核会自动释放 Mutex,此函数主要用于显式清理.
     """
     global _mutex_handle
 
@@ -93,15 +93,15 @@ def cleanup_lock() -> None:
 
 
 def is_process_running(pid: int) -> bool:
-    """检查指定 PID 的进程是否存活（Windows 专用）。
+    """检查指定 PID 的进程是否存活(Windows 专用).
 
-    保留此函数以兼容其他模块可能的调用，但不再用于单实例检查。
+    保留此函数以兼容其他模块可能的调用,但不再用于单实例检查.
 
     Args:
-        pid: 要检查的进程 ID。
+        pid: 要检查的进程 ID.
 
     Returns:
-        True 表示进程存在，False 表示不存在或无法查询。
+        True 表示进程存在,False 表示不存在或无法查询.
     """
     try:
         kernel32 = _get_kernel32()

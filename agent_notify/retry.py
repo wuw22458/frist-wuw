@@ -1,14 +1,15 @@
-"""重试机制 — 为关键操作提供自动重试功能。"""
+"""重试机制 — 为关键操作提供自动重试功能."""
 
 import time
+from collections.abc import Callable
 from functools import wraps
-from typing import Callable, TypeVar
+from typing import TypeVar
 
 from log import get_logger
 
-logger = get_logger("retry")
+logger = get_logger('retry')
 
-T = TypeVar("T")
+T = TypeVar('T')
 
 
 def retry(
@@ -17,16 +18,16 @@ def retry(
     backoff: float = 2.0,
     exceptions: tuple = (Exception,),
 ) -> Callable:
-    """重试装饰器。
+    """重试装饰器.
 
     Args:
-        max_attempts: 最大尝试次数（包含首次调用）。
-        delay: 首次重试延迟（秒）。
-        backoff: 延迟倍增系数。
-        exceptions: 需要重试的异常类型。
+        max_attempts: 最大尝试次数(包含首次调用).
+        delay: 首次重试延迟(秒).
+        backoff: 延迟倍增系数.
+        exceptions: 需要重试的异常类型.
 
     Returns:
-        装饰后的函数。
+        装饰后的函数.
     """
 
     def decorator(func: Callable[..., T]) -> Callable[..., T]:
@@ -42,7 +43,7 @@ def retry(
                     last_exception = e
                     if attempt < max_attempts - 1:
                         logger.warning(
-                            "%s 第 %d 次尝试失败: %s，%.1f 秒后重试",
+                            '%s 第 %d 次尝试失败: %s，%.1f 秒后重试',
                             func.__name__,
                             attempt + 1,
                             e,
@@ -52,7 +53,7 @@ def retry(
                         current_delay *= backoff
                     else:
                         logger.error(
-                            "%s 所有 %d 次尝试均失败: %s",
+                            '%s 所有 %d 次尝试均失败: %s',
                             func.__name__,
                             max_attempts,
                             e,
@@ -71,16 +72,16 @@ def retry_async(
     backoff: float = 2.0,
     exceptions: tuple = (Exception,),
 ) -> Callable:
-    """异步重试装饰器（用于 QThread 等场景）。
+    """异步重试装饰器(用于 QThread 等场景).
 
     Args:
-        max_attempts: 最大尝试次数（包含首次调用）。
-        delay: 首次重试延迟（秒）。
-        backoff: 延迟倍增系数。
-        exceptions: 需要重试的异常类型。
+        max_attempts: 最大尝试次数(包含首次调用).
+        delay: 首次重试延迟(秒).
+        backoff: 延迟倍增系数.
+        exceptions: 需要重试的异常类型.
 
     Returns:
-        装饰后的函数。
+        装饰后的函数.
     """
 
     def decorator(func: Callable[..., T]) -> Callable[..., T]:
@@ -96,7 +97,7 @@ def retry_async(
                     last_exception = e
                     if attempt < max_attempts - 1:
                         logger.warning(
-                            "%s 第 %d 次尝试失败: %s，%.1f 秒后重试",
+                            '%s 第 %d 次尝试失败: %s，%.1f 秒后重试',
                             func.__name__,
                             attempt + 1,
                             e,
@@ -112,7 +113,7 @@ def retry_async(
                         current_delay *= backoff
                     else:
                         logger.error(
-                            "%s 所有 %d 次尝试均失败: %s",
+                            '%s 所有 %d 次尝试均失败: %s',
                             func.__name__,
                             max_attempts,
                             e,

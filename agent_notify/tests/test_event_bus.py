@@ -1,4 +1,4 @@
-"""EventBus 中央事件总线单元测试。"""
+"""EventBus 中央事件总线单元测试."""
 
 from events import AgentEvent, EventType
 
@@ -30,9 +30,9 @@ class TestEventBus:
         bus = get_bus()
         received = []
         bus.event_received.connect(lambda e: received.append(e))
-        event = AgentEvent("test", EventType.WAITING, "hello")
+        event = AgentEvent('test', EventType.WAITING, 'hello')
         bus.event_received.emit(event)
         assert len(received) == 1
-        assert received[0].agent_id == "test"
-        assert received[0].message == "hello"
+        assert received[0].agent_id == 'test'
+        assert received[0].message == 'hello'
         reset_bus()

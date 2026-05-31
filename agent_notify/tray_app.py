@@ -1,11 +1,11 @@
-"""兼容性 re-export — 实际代码已拆分到 ui/ 包。
+"""兼容性 re-export — 实际代码已拆分到 ui/ 包.
 
 - ui/widgets.py  — 共享 UI 组件和色板
 - ui/settings.py — SettingsWindow
 - ui/tray.py     — TrayApp
 
-新代码应直接从 ui.tray / ui.settings 导入。
-此文件仅为向后兼容保留。
+新代码应直接从 ui.tray / ui.settings 导入.
+此文件仅为向后兼容保留.
 """
 
 from ui.settings import SettingsWindow  # noqa: F401

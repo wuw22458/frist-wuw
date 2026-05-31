@@ -1,15 +1,14 @@
-"""UI 组件 — 色板、自定义控件、托盘图标绘制。
+"""UI 组件 — 色板、自定义控件、托盘图标绘制.
 
-提供 SettingsWindow 和 TrayApp 共享的：
-- 色板常量（BG, ACCENT, T1 等）
-- 事件类型映射（_EVENT_COLORS, _EVENT_TAGS 等）
-- 自定义控件（ToggleSwitch, GlowBackground, SectionCard, StatusIndicator）
-- 辅助函数（_make_icon, _shadow）
+提供 SettingsWindow 和 TrayApp 共享的:
+- 色板常量(BG, ACCENT, T1 等)
+- 事件类型映射(_EVENT_COLORS, _EVENT_TAGS 等)
+- 自定义控件(ToggleSwitch, GlowBackground, SectionCard, StatusIndicator)
+- 辅助函数(_make_icon, _shadow)
 """
 
 import time as _time
 
-from events import EventType
 from PySide6.QtCore import (
     QEasingCurve,
     QPointF,
@@ -41,6 +40,8 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from events import EventType
+
 # ── 色板 ─────────────────────────────────────────────────
 BG = QColor(13, 17, 23)
 BG_CARD = QColor(22, 27, 34)
@@ -50,9 +51,9 @@ ACCENT_HOVER = QColor(121, 192, 255)
 GREEN = QColor(63, 185, 80)
 ORANGE = QColor(210, 153, 34)
 RED = QColor(248, 81, 73)
-T1 = "#f0f3f6"
-T2 = "#b0b8c4"
-T3 = "#6e7681"
+T1 = '#f0f3f6'
+T2 = '#b0b8c4'
+T3 = '#6e7681'
 FONT = '"Microsoft YaHei UI", "Segoe UI", sans-serif'
 MONO = '"Cascadia Code", "Consolas", monospace'
 
@@ -66,18 +67,18 @@ _EVENT_COLORS = {
 
 # 事件类型 → 标签
 _EVENT_TAGS = {
-    EventType.WAITING: "确认",
-    EventType.COMPLETED: "完成",
-    EventType.ERROR: "错误",
-    EventType.INFO: "信息",
+    EventType.WAITING: '确认',
+    EventType.COMPLETED: '完成',
+    EventType.ERROR: '错误',
+    EventType.INFO: '信息',
 }
 
 # 事件类型 → 状态文本前缀
 _EVENT_STATUS_PREFIX = {
-    EventType.WAITING: "等待确认",
-    EventType.COMPLETED: "任务完成",
-    EventType.ERROR: "出错",
-    EventType.INFO: "通知",
+    EventType.WAITING: '等待确认',
+    EventType.COMPLETED: '任务完成',
+    EventType.ERROR: '出错',
+    EventType.INFO: '通知',
 }
 
 
@@ -85,7 +86,7 @@ _EVENT_STATUS_PREFIX = {
 
 
 class ToggleSwitch(QWidget):
-    """iOS 风格滑动开关，带平滑滑动动画和键盘焦点支持。"""
+    """iOS 风格滑动开关,带平滑滑动动画和键盘焦点支持."""
 
     toggled = Signal(bool)
 
@@ -97,11 +98,11 @@ class ToggleSwitch(QWidget):
 
     def __init__(
         self,
-        text: str = "",
+        text: str = '',
         parent=None,
         checked=False,
         on_color=ACCENT,
-        off_color="#30363D",
+        off_color='#30363D',
     ):
         super().__init__(parent)
         self._checked = checked
@@ -109,7 +110,7 @@ class ToggleSwitch(QWidget):
         self._thumb_pos = self._calc_thumb_pos()
         self._on_color = QColor(on_color) if isinstance(on_color, str) else on_color
         self._off_color = QColor(off_color) if isinstance(off_color, str) else off_color
-        self._thumb_color = QColor("#FFFFFF")
+        self._thumb_color = QColor('#FFFFFF')
         self.setCursor(Qt.PointingHandCursor)
         self.setMinimumHeight(36)
         self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
@@ -149,7 +150,7 @@ class ToggleSwitch(QWidget):
         if not self._text:
             return 0
         font = self.font()
-        font.setFamilies(["Microsoft YaHei UI", "Segoe UI", "sans-serif"])
+        font.setFamilies(['Microsoft YaHei UI', 'Segoe UI', 'sans-serif'])
         font.setPixelSize(13)
         return QFontMetrics(font).horizontalAdvance(self._text)
 
@@ -181,7 +182,7 @@ class ToggleSwitch(QWidget):
         if self._text:
             p.setPen(QColor(240, 243, 246))
             font = p.font()
-            font.setFamilies(["Microsoft YaHei UI", "Segoe UI", "sans-serif"])
+            font.setFamilies(['Microsoft YaHei UI', 'Segoe UI', 'sans-serif'])
             font.setPixelSize(13)
             p.setFont(font)
             tx = int(self._TRACK_WIDTH + self._GAP)
@@ -198,7 +199,7 @@ class ToggleSwitch(QWidget):
 
 
 class GlowBackground(QWidget):
-    """渐变背景 + 两个径向光晕椭圆。"""
+    """渐变背景 + 两个径向光晕椭圆."""
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -241,7 +242,7 @@ class GlowBackground(QWidget):
 _ICON_CACHE: dict[tuple, QPixmap] = {}
 
 
-def _make_icon(color: str = "#58a6ff", alert: bool = False) -> QIcon:
+def _make_icon(color: str = '#58a6ff', alert: bool = False) -> QIcon:
     cache_key = (color, alert)
     if cache_key in _ICON_CACHE:
         return _ICON_CACHE[cache_key].copy()
@@ -280,9 +281,9 @@ def _make_icon(color: str = "#58a6ff", alert: bool = False) -> QIcon:
 
 # ── 毛玻璃卡片 ────────────────────────────────────────────
 
-GLASS_BG = "rgba(255, 255, 255, 0.06)"
-GLASS_BORDER = "rgba(255, 255, 255, 0.08)"
-GLASS_HOVER = "rgba(255, 255, 255, 0.10)"
+GLASS_BG = 'rgba(255, 255, 255, 0.06)'
+GLASS_BORDER = 'rgba(255, 255, 255, 0.08)'
+GLASS_HOVER = 'rgba(255, 255, 255, 0.10)'
 
 _GLASS_CARD_STYLE = f"""
     background: {GLASS_BG};
@@ -292,7 +293,7 @@ _GLASS_CARD_STYLE = f"""
 
 
 class SectionCard(QFrame):
-    """毛玻璃风格分组卡片。"""
+    """毛玻璃风格分组卡片."""
 
     def __init__(self, title: str, parent=None):
         super().__init__(parent)
@@ -308,8 +309,7 @@ class SectionCard(QFrame):
 
         self._title = QLabel(title)
         self._title.setStyleSheet(
-            "color: rgba(255,255,255,0.70); font-size: 12px; "
-            "font-weight: 700; letter-spacing: 1px; border: none;"
+            'color: rgba(255,255,255,0.70); font-size: 12px; font-weight: 700; letter-spacing: 1px; border: none;'
         )
         self._layout.addWidget(self._title)
 
@@ -325,6 +325,7 @@ class SectionCard(QFrame):
 
 class RippleEffect(QWidget):
     """An expanding ring ripple animation on a QLabel circle."""
+
     def __init__(self, color: str = '#58a6ff', parent=None):
         super().__init__(parent)
         self._color = color
@@ -335,22 +336,18 @@ class RippleEffect(QWidget):
 
     def trigger(self, count=3):
         """Launch 'count' expanding ring animations."""
-        from PySide6.QtCore import QPropertyAnimation, QEasingCurve, QTimer
+        from PySide6.QtCore import QEasingCurve, QPropertyAnimation, QTimer
         from PySide6.QtWidgets import QGraphicsOpacityEffect
 
         cx, cy = self.width() // 2, self.height() // 2
         max_r = max(self.width(), self.height()) * 1.5
 
-        for i in range(count):
+        for _ in range(count):
             ring = QWidget(self)
             ring.setAttribute(Qt.WA_StyledBackground, True)
             r = 8
             ring.setGeometry(cx - r, cy - r, r * 2, r * 2)
-            ring.setStyleSheet(
-                f'background: transparent;'
-                f'border: 2px solid {self._color};'
-                f'border-radius: {r}px;'
-            )
+            ring.setStyleSheet(f'background: transparent;border: 2px solid {self._color};border-radius: {r}px;')
             eff = QGraphicsOpacityEffect(ring)
             eff.setOpacity(0.8)
             ring.setGraphicsEffect(eff)
@@ -367,12 +364,7 @@ class RippleEffect(QWidget):
             geo = QPropertyAnimation(ring, b'geometry', ring)
             geo.setDuration(800)
             geo.setStartValue(ring.geometry())
-            geo.setEndValue(
-                ring.geometry().adjusted(
-                    int(-max_r / 2), int(-max_r / 2),
-                    int(max_r / 2), int(max_r / 2)
-                )
-            )
+            geo.setEndValue(ring.geometry().adjusted(int(-max_r / 2), int(-max_r / 2), int(max_r / 2), int(max_r / 2)))
             geo.setEasingCurve(QEasingCurve.Type.OutQuart)
 
             op.start()
@@ -384,11 +376,11 @@ class RippleEffect(QWidget):
 
 
 class StatusIndicator(QWidget):
-    """两行状态指示器：上行=圆点+状态+事件计数，下行=运行时长。"""
+    """两行状态指示器:上行=圆点+状态+事件计数,下行=运行时长."""
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setStyleSheet("background: transparent;")
+        self.setStyleSheet('background: transparent;')
         self.setAttribute(Qt.WA_StyledBackground, True)
 
         root = QVBoxLayout(self)
@@ -399,26 +391,22 @@ class StatusIndicator(QWidget):
         row1.setContentsMargins(0, 0, 0, 0)
         row1.setSpacing(6)
 
-        self._dot = QLabel("●")
+        self._dot = QLabel('●')
         self._dot.setFixedWidth(16)
         self._dot.setAlignment(Qt.AlignCenter)
-        self._dot.setStyleSheet(
-            "font-size: 14px; border: none; background: transparent;"
-        )
+        self._dot.setStyleSheet('font-size: 14px; border: none; background: transparent;')
         row1.addWidget(self._dot)
 
-        self._text = QLabel("监控中")
+        self._text = QLabel('监控中')
         self._text.setStyleSheet(
-            f"color: {T1}; font-size: 13px; font-weight: 600;"
-            f" border: none; background: transparent;"
+            f'color: {T1}; font-size: 13px; font-weight: 600; border: none; background: transparent;'
         )
         row1.addWidget(self._text)
         row1.addStretch()
 
-        self._count = QLabel("")
+        self._count = QLabel('')
         self._count.setStyleSheet(
-            f"color: {T3}; font-size: 11px; font-family: {MONO};"
-            f" border: none; background: transparent;"
+            f'color: {T3}; font-size: 11px; font-family: {MONO}; border: none; background: transparent;'
         )
         row1.addWidget(self._count)
         root.addLayout(row1)
@@ -429,47 +417,43 @@ class StatusIndicator(QWidget):
 
         spacer = QWidget()
         spacer.setFixedWidth(22)
-        spacer.setStyleSheet("background: transparent;")
+        spacer.setStyleSheet('background: transparent;')
         row2.addWidget(spacer)
 
-        self._runtime = QLabel("已运行 0 分钟")
+        self._runtime = QLabel('已运行 0 分钟')
         self._runtime.setStyleSheet(
-            f"color: {T3}; font-size: 10px; font-family: {MONO};"
-            f" border: none; background: transparent;"
+            f'color: {T3}; font-size: 10px; font-family: {MONO}; border: none; background: transparent;'
         )
         row2.addWidget(self._runtime)
         row2.addStretch()
         root.addLayout(row2)
 
         self._start_time = _time.time()
-        self.set_status("监控中", GREEN)
+        self.set_status('监控中', GREEN)
 
     def set_status(self, text: str, color: QColor = None):
         if color is None:
             color = GREEN
-        self._dot.setStyleSheet(
-            f"color: {color.name()}; font-size: 14px;"
-            f" border: none; background: transparent;"
-        )
+        self._dot.setStyleSheet(f'color: {color.name()}; font-size: 14px; border: none; background: transparent;')
         self._text.setText(text)
 
     def set_count(self, count: int):
         if count > 0:
-            self._count.setText(f"捕获 {count} 个事件")
+            self._count.setText(f'捕获 {count} 个事件')
         else:
-            self._count.setText("")
+            self._count.setText('')
 
     def update_runtime(self):
         elapsed = int(_time.time() - self._start_time)
         if elapsed < 60:
-            self._runtime.setText(f"已运行 {elapsed} 秒")
+            self._runtime.setText(f'已运行 {elapsed} 秒')
         else:
             mins = elapsed // 60
-            self._runtime.setText(f"已运行 {mins} 分钟")
+            self._runtime.setText(f'已运行 {mins} 分钟')
 
     def pulse(self, color: str | None = None):
         """Trigger a pulse animation with ripple effect."""
-        c = color or self._dot.styleSheet().split("color:")[1].split(";")[0].strip()
+        c = color or self._dot.styleSheet().split('color:')[1].split(';')[0].strip()
         if not hasattr(self, '_ripple'):
             self._ripple = RippleEffect(c, self)
         else:
@@ -481,21 +465,21 @@ class StatusIndicator(QWidget):
 
 
 class BannerWidget(QFrame):
-    """通用信息横幅，支持 info/warning/error 三种样式。"""
+    """通用信息横幅,支持 info/warning/error 三种样式."""
 
     closed = Signal()
     action_clicked = Signal()
 
     _STYLES = {
-        "info": ("#1A3A5C", "#58A6FF", "#58A6FF"),
-        "warning": ("#3D2E00", "#D29922", "#D29922"),
-        "error": ("#3D1A1A", "#F85149", "#F85149"),
+        'info': ('#1A3A5C', '#58A6FF', '#58A6FF'),
+        'warning': ('#3D2E00', '#D29922', '#D29922'),
+        'error': ('#3D1A1A', '#F85149', '#F85149'),
     }
 
-    def __init__(self, text="", action_text="", banner_type="info", parent=None):
+    def __init__(self, text='', action_text='', banner_type='info', parent=None):
         super().__init__(parent)
         self.setFixedHeight(52)
-        bg, border, accent = self._STYLES.get(banner_type, self._STYLES["info"])
+        bg, border, accent = self._STYLES.get(banner_type, self._STYLES['info'])
         self.setStyleSheet(f"""
             QFrame {{
                 background: {bg};
@@ -506,7 +490,7 @@ class BannerWidget(QFrame):
         layout = QHBoxLayout(self)
         layout.setContentsMargins(14, 0, 10, 0)
         self._label = QLabel(text)
-        self._label.setStyleSheet(f"color: {border}; font-size: 12px; border: none;")
+        self._label.setStyleSheet(f'color: {border}; font-size: 12px; border: none;')
         layout.addWidget(self._label, 1)
         if action_text:
             btn = QPushButton(action_text)
@@ -525,13 +509,13 @@ class BannerWidget(QFrame):
             """)
             btn.clicked.connect(self.action_clicked.emit)
             layout.addWidget(btn)
-        close_btn = QPushButton("✕")
+        close_btn = QPushButton('✕')
         close_btn.setFixedSize(24, 24)
         close_btn.setCursor(Qt.PointingHandCursor)
         close_btn.setStyleSheet(
-            f"QPushButton {{ background: transparent; color: {border};"
-            f" border: none; font-size: 14px; }}"
-            f"QPushButton:hover {{ color: #F0F3F6; }}"
+            f'QPushButton {{ background: transparent; color: {border};'
+            f' border: none; font-size: 14px; }}'
+            f'QPushButton:hover {{ color: #F0F3F6; }}'
         )
         close_btn.clicked.connect(self.hide)
         close_btn.clicked.connect(self.closed.emit)
@@ -561,8 +545,9 @@ def _shadow(widget, color=None, radius=12, offset_y=2):
 
 def apply_pause_filter(widget: QWidget, paused: bool):
     """Desaturate a widget subtree when paused."""
-    from PySide6.QtWidgets import QGraphicsOpacityEffect
     from PySide6.QtCore import QPropertyAnimation
+    from PySide6.QtWidgets import QGraphicsOpacityEffect
+
     if paused:
         eff = QGraphicsOpacityEffect(widget)
         eff.setOpacity(1.0)

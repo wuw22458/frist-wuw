@@ -1,10 +1,20 @@
-import py_compile, sys
+import py_compile
 
 files = [
-    'ui/style.py', 'ui/settings.py', 'ui/widgets.py', 'ui/splash.py',
-    'ui/tray.py', 'notification.py', 'notification_engine.py', 'main.py',
-    'events.py', 'settings.py', 'crash_reporter.py', 'signal_file.py',
-    'log.py', 'adapters/claude_hook.py'
+    'ui/style.py',
+    'ui/settings.py',
+    'ui/widgets.py',
+    'ui/splash.py',
+    'ui/tray.py',
+    'notification.py',
+    'notification_engine.py',
+    'main.py',
+    'events.py',
+    'settings.py',
+    'crash_reporter.py',
+    'signal_file.py',
+    'log.py',
+    'adapters/claude_hook.py',
 ]
 ok = True
 for f in files:

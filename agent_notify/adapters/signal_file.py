@@ -1,10 +1,10 @@
-"""SignalFileAdapter — 基于 JSON 信号文件轮询的 adapter 中间层。
+"""SignalFileAdapter — 基于 JSON 信号文件轮询的 adapter 中间层.
 
-子类只需声明类属性即可工作：
+子类只需声明类属性即可工作:
     glob_pattern:   匹配信号文件的 glob 模式
     exclude_names:  需要排除的文件名集合
     event_map:      原始 event 字符串 → EventType 的映射
-    poll_interval_ms: 轮询间隔（毫秒）
+    poll_interval_ms: 轮询间隔(毫秒)
 """
 
 from __future__ import annotations
@@ -13,21 +13,20 @@ import contextlib
 import json
 from collections import OrderedDict
 
+from adapters.base import PollingAdapter
 from constants import SIGNAL_DIR
 from events import AgentEvent, EventType
 from log import get_logger
 from retry import retry
 
-from adapters.base import PollingAdapter
-
-logger = get_logger("signal_file")
+logger = get_logger('signal_file')
 
 _MAX_PROCESSED = 500
 
 
 def _parse_signal_file(file_path) -> dict:
-    """解析信号文件（带重试机制）。"""
-    return json.loads(file_path.read_text(encoding="utf-8"))
+    """解析信号文件(带重试机制)."""
+    return json.loads(file_path.read_text(encoding='utf-8'))
 
 
 # 应用重试装饰器
@@ -40,10 +39,10 @@ _parse_signal_file = retry(
 
 
 class SignalFileAdapter(PollingAdapter):
-    """信号文件轮询 adapter。子类声明配置属性即可。"""
+    """信号文件轮询 adapter.子类声明配置属性即可."""
 
-    glob_pattern: str = "*.json"
-    exclude_names: set[str] = {"config.json"}
+    glob_pattern: str = '*.json'
+    exclude_names: set[str] = {'config.json'}
     event_map: dict[str, EventType] = {}
     poll_interval_ms: int = 1000
 
@@ -53,7 +52,7 @@ class SignalFileAdapter(PollingAdapter):
         SIGNAL_DIR.mkdir(parents=True, exist_ok=True)
 
     def check(self) -> None:
-        """轮询信号目录，解析新 JSON 文件并发射事件。"""
+        """轮询信号目录,解析新 JSON 文件并发射事件."""
         for f in sorted(SIGNAL_DIR.glob(self.glob_pattern)):
             if f.name in self._processed or f.name in self.exclude_names:
                 continue
@@ -63,11 +62,11 @@ class SignalFileAdapter(PollingAdapter):
                 self._processed.popitem(last=False)
             try:
                 data = _parse_signal_file(f)
-                raw_event = data.get("event", "unknown")
-                message = data.get("message", "")
+                raw_event = data.get('event', 'unknown')
+                message = data.get('message', '')
                 event_type = self.event_map.get(raw_event, EventType.INFO)
                 logger.debug(
-                    "[%s] 收到信号: event=%s msg=%s",
+                    '[%s] 收到信号: event=%s msg=%s',
                     self.agent_id,
                     raw_event,
                     message[:60],
@@ -77,13 +76,13 @@ class SignalFileAdapter(PollingAdapter):
                         agent_id=self.agent_id,
                         event_type=event_type,
                         message=message,
-                        metadata={"raw_event": raw_event},
+                        metadata={'raw_event': raw_event},
                     )
                 )
                 f.unlink()
             except (json.JSONDecodeError, OSError) as e:
                 logger.warning(
-                    "[%s] 信号文件解析失败，已删除 %s: %s | path=%s",
+                    '[%s] 信号文件解析失败，已删除 %s: %s | path=%s',
                     self.agent_id,
                     f.name,
                     e,

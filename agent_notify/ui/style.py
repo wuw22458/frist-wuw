@@ -1,22 +1,22 @@
-"""设计 Token — 动画时长、缓动曲线、全局样式常量。
+"""设计 Token — 动画时长、缓动曲线、全局样式常量.
 
-供 UI 动画代码统一引用，避免魔法数字散落各处。
+供 UI 动画代码统一引用,避免魔法数字散落各处.
 """
 
 from PySide6.QtCore import QEasingCurve
 
 # === Animation ===
 # Durations (ms)
-ANIM_MICRO = 80          # 微交互: hover, press
-ANIM_FAST = 150          # 快速状态变化
-ANIM_NORMAL = 250        # 标准过渡
-ANIM_SLOW = 400          # 复杂动画
-ANIM_STAGGER = 60        # 列表错开延迟
+ANIM_MICRO = 80  # 微交互: hover, press
+ANIM_FAST = 150  # 快速状态变化
+ANIM_NORMAL = 250  # 标准过渡
+ANIM_SLOW = 400  # 复杂动画
+ANIM_STAGGER = 60  # 列表错开延迟
 
 # Easing curves (PySide6 QEasingCurve.Type 枚举)
-EASE_OUT_QUART = QEasingCurve.Type.OutQuart       # 入场 / 减速停止
-EASE_IN_OUT = QEasingCurve.Type.InOutCubic         # 双向对称过渡
-EASE_SPRING = QEasingCurve.Type.OutElastic          # 弹性效果
+EASE_OUT_QUART = QEasingCurve.Type.OutQuart  # 入场 / 减速停止
+EASE_IN_OUT = QEasingCurve.Type.InOutCubic  # 双向对称过渡
+EASE_SPRING = QEasingCurve.Type.OutElastic  # 弹性效果
 
 # === Scrollbar ===
 # GitHub Dark 风格的细滚动条，全局可复用

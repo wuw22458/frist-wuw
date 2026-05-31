@@ -1,0 +1,31 @@
+# Ruff 配置文件
+
+# 目标 Python 版本
+target-version = "py310"
+
+# 行长度限制
+line-length = 120
+
+[lint]
+# 选择的规则
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+# 忽略的规则
+ignore = [
+    "E501",  # 行过长
+    "E701",  # 多条语句在同一行（用于中文 docstring）
+]
+
+# 允许自动修复
+fixable = ["ALL"]
+
+# 每文件忽略规则
+[lint.per-file-ignores]
+# settings.py 和 test_verify.py 需要在 QApplication 创建后导入 Qt 模块
+"ui/settings.py" = ["E402"]
+"test_verify.py" = ["E402"]
+
+[format]
+# 格式化设置
+quote-style = "single"
+indent-style = "space"
