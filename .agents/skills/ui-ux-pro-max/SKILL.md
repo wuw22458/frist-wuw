@@ -1,6 +1,7 @@
 ---
 name: ui-ux-pro-max
-description: This skill should be used when the user asks to design or review a UI, create a landing page or dashboard, choose colors or typography, improve accessibility, or implement polished frontend interfaces
+description: This skill should be used when the user asks to design or review a UI, create a landing page or dashboard, choose colors or typography, improve accessibility, or implement polished frontend interfaces with a clear design system.
+version: 0.2.0
 ---
 
 # UI/UX Pro Max
